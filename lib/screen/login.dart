@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vitacal_app/screen/forgot_password.dart';
+import 'package:vitacal_app/screen/home.dart';
 import 'package:vitacal_app/screen/registrasi.dart';
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:flutter/gestures.dart';
@@ -170,7 +171,7 @@ class _LoginState extends State<Login> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const Login(),
+                              builder: (context) => const Home(),
                             ),
                           );
                         },
