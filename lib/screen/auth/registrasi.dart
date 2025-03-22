@@ -1,8 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:vitacal_app/screen/login.dart';
-import 'package:vitacal_app/screen/otp_registrasi.dart';
+import 'package:vitacal_app/screen/auth/login.dart';
+import 'package:vitacal_app/screen/auth/otp/otp_registrasi.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
 class Registrasi extends StatefulWidget {

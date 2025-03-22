@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vitacal_app/screen/reset_password.dart';
+import 'package:vitacal_app/screen/auth/reset_password.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
 class OtpForgotpassword extends StatefulWidget {

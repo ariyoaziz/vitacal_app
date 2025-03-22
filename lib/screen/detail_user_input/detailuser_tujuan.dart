@@ -1,17 +1,19 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:vitacal_app/screen/login.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:vitacal_app/screen/detail_user_input/detailuser_berat_dan_tinggi.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
-class DetailuserAktivitas extends StatefulWidget {
-  const DetailuserAktivitas({super.key});
+class DetailuserTujuan extends StatefulWidget {
+  const DetailuserTujuan({super.key});
 
   @override
-  State<DetailuserAktivitas> createState() => _DetailuserAktivitasState();
+  State<DetailuserTujuan> createState() => _DetailuserTujuanState();
 }
 
-class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
-  double _progressValue = 1;
+class _DetailuserTujuanState extends State<DetailuserTujuan> {
+  double _progressValue = 0.48;
   String? _selectedTujuan;
 
   @override
@@ -25,7 +27,7 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.05,
-            vertical: screenHeight * 0.05,
+            vertical: screenHeight * 0.05, // Padding atas & bawah
           ),
           child: Column(
             children: [
@@ -42,7 +44,6 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
                     child: IconButton(
                       icon: SvgPicture.asset(
                         'assets/icons/arrow.svg',
-                        // ignore: deprecated_member_use
                         color: AppColors.primary,
                         height: 15,
                         width: 15,
@@ -55,7 +56,7 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
 
                   // Garis Progress
                   SizedBox(
-                    width: screenWidth * 0.75,
+                    width: screenWidth * 0.73,
                     child: LinearProgressIndicator(
                       value: _progressValue,
                       backgroundColor: Colors.grey[300],
@@ -77,7 +78,7 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
                       children: [
                         // Judul
                         const Text(
-                          "Bgaiamana Aktivitas Harian Anda?",
+                          "Apa Tujuan Kamu?",
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -96,59 +97,47 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
 
                         const SizedBox(height: 33),
 
-                        // Pilihan Aktivitas dengan Card
+                        // Pilihan Gender dengan Card
                         Column(
                           children: [
-                            // Jarang Sekali
+                            // Menurunkan Berat Badan
                             SizedBox(
-                              width: screenWidth * 0.85,
+                              width: screenWidth *
+                                  0.85, // Menyamaikan lebar dengan tombol
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedTujuan = "Jarang Sekali";
+                                    _selectedTujuan = "Menurunkan Berat Badan";
                                   });
                                 },
                                 child: Card(
                                   elevation: 4,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(21),
+                                    borderRadius: BorderRadius.circular(33),
                                   ),
-                                  color: _selectedTujuan == "Jarang Sekali"
+                                  color: _selectedTujuan ==
+                                          "Menurunkan Berat Badan"
                                       ? Color(0xFFF1F0E9)
                                       : Colors.white,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 15, horizontal: 15),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    child: Row(
                                       children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons
-                                                  .pause_circle_outline, // Ikon untuk jarang sekali
-                                              color: _selectedTujuan ==
-                                                      "Jarang Sekali"
-                                                  ? AppColors.primary
-                                                  : AppColors.primary,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            const Text(
-                                              "Jarang Sekali",
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
+                                        Icon(
+                                          Icons
+                                              .remove_circle_outline, // Ikon untuk menurunkan berat badan
+                                          color: _selectedTujuan ==
+                                                  "Menurunkan Berat Badan"
+                                              ? AppColors.primary
+                                              : AppColors.primary,
                                         ),
-                                        const SizedBox(height: 10),
+                                        const SizedBox(width: 10),
                                         const Text(
-                                          "Kegiatan sehari-hari yang membutuhkan sedikit usaha, seperti beristirahat, kerja di belakang meja, atau mengemudi.",
+                                          "Menurunkan Berat Badan",
                                           style: TextStyle(
-                                            fontSize: 14,
-                                            color: AppColors.darkGrey,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],
@@ -157,58 +146,46 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 11),
+                            const SizedBox(height: 15),
 
-                            // Sedikit Aktif
+                            // Menambahkan Berat Badan
                             SizedBox(
-                              width: screenWidth * 0.85,
+                              width: screenWidth *
+                                  0.85, // Menyamaikan lebar dengan tombol
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedTujuan = "Sedikit Aktif";
+                                    _selectedTujuan = "Menambahkan Berat Badan";
                                   });
                                 },
                                 child: Card(
                                   elevation: 4,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(21),
+                                    borderRadius: BorderRadius.circular(33),
                                   ),
-                                  color: _selectedTujuan == "Sedikit Aktif"
+                                  color: _selectedTujuan ==
+                                          "Menambahkan Berat Badan"
                                       ? Color(0xFFF1F0E9)
                                       : Colors.white,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 15, horizontal: 15),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    child: Row(
                                       children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons
-                                                  .access_alarm, // Ikon untuk sedikit aktif
-                                              color: _selectedTujuan ==
-                                                      "Sedikit Aktif"
-                                                  ? AppColors.primary
-                                                  : AppColors.primary,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            const Text(
-                                              "Sedikit Aktif",
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
+                                        Icon(
+                                          Icons
+                                              .add_circle_outline, // Ikon untuk menambahkan berat badan
+                                          color: _selectedTujuan ==
+                                                  "Menambahkan Berat Badan"
+                                              ? AppColors.primary
+                                              : AppColors.primary,
                                         ),
-                                        const SizedBox(height: 10),
+                                        const SizedBox(width: 10),
                                         const Text(
-                                          "Kegiatan sehari-hari yang membutuhkan beberapa upaya, seperti berdiri secara berkala, pekerjaan rumah, atau latihan ringan.",
+                                          "Menambahkan Berat Badan",
                                           style: TextStyle(
-                                            fontSize: 14,
-                                            color: AppColors.darkGrey,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],
@@ -217,57 +194,47 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 11),
+                            const SizedBox(height: 15),
 
-                            // Aktif
+                            // Menjaga Berat Badan Ideal
                             SizedBox(
-                              width: screenWidth * 0.85,
+                              width: screenWidth *
+                                  0.85, // Menyamaikan lebar dengan tombol
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedTujuan = "Aktif";
+                                    _selectedTujuan =
+                                        "Menjaga Berat Badan Ideal";
                                   });
                                 },
                                 child: Card(
                                   elevation: 4,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(21),
+                                    borderRadius: BorderRadius.circular(33),
                                   ),
-                                  color: _selectedTujuan == "Aktif"
+                                  color: _selectedTujuan ==
+                                          "Menjaga Berat Badan Ideal"
                                       ? Color(0xFFF1F0E9)
                                       : Colors.white,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 15, horizontal: 15),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    child: Row(
                                       children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons
-                                                  .directions_run, // Ikon untuk aktif
-                                              color: _selectedTujuan == "Aktif"
-                                                  ? AppColors.primary
-                                                  : AppColors.primary,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            const Text(
-                                              "Aktif",
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
+                                        Icon(
+                                          Icons
+                                              .fitness_center, // Ikon untuk menjaga berat badan ideal
+                                          color: _selectedTujuan ==
+                                                  "Menjaga Berat Badan Ideal"
+                                              ? AppColors.primary
+                                              : AppColors.primary,
                                         ),
-                                        const SizedBox(height: 10),
+                                        const SizedBox(width: 10),
                                         const Text(
-                                          "Kegiatan sehari-hari yang membutuhkan upaya lebih, seperti berdiri lama, kerja fisik, atau olahraga ringan secara teratur.",
+                                          "Menjaga Berat Badan Ideal",
                                           style: TextStyle(
-                                            fontSize: 14,
-                                            color: AppColors.darkGrey,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],
@@ -276,58 +243,46 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 11),
+                            const SizedBox(height: 15),
 
-                            // Sangat Aktif
+                            // Menaikan Massa Tubuh
                             SizedBox(
-                              width: screenWidth * 0.85,
+                              width: screenWidth *
+                                  0.85, // Menyamaikan lebar dengan tombol
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedTujuan = "Sangat Aktif";
+                                    _selectedTujuan = "Menaikan Massa Tubuh";
                                   });
                                 },
                                 child: Card(
                                   elevation: 4,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(21),
+                                    borderRadius: BorderRadius.circular(33),
                                   ),
-                                  color: _selectedTujuan == "Sangat Aktif"
-                                      ? Color(0xFFF1F0E9)
-                                      : Colors.white,
+                                  color:
+                                      _selectedTujuan == "Menaikan Massa Tubuh"
+                                          ? Color(0xFFF1F0E9)
+                                          : Colors.white,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 15, horizontal: 15),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    child: Row(
                                       children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons
-                                                  .fitness_center, // Ikon untuk sangat aktif
-                                              color: _selectedTujuan ==
-                                                      "Sangat Aktif"
-                                                  ? AppColors.primary
-                                                  : AppColors.primary,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            const Text(
-                                              "Sangat Aktif",
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
+                                        Icon(
+                                          Icons
+                                              .accessibility_new, // Ikon untuk menaikan massa tubuh
+                                          color: _selectedTujuan ==
+                                                  "Menaikan Massa Tubuh"
+                                              ? AppColors.primary
+                                              : AppColors.primary,
                                         ),
-                                        const SizedBox(height: 10),
+                                        const SizedBox(width: 10),
                                         const Text(
-                                          "Kegiatan yang membutuhkan usaha fisik berat, seperti pekerjaan konstruksi atau olahraga berat secara teratur.",
+                                          "Menaikan Massa Tubuh",
                                           style: TextStyle(
-                                            fontSize: 14,
-                                            color: AppColors.darkGrey,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],
@@ -344,7 +299,7 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
                 ),
               ),
 
-              // Tombol Lanjut
+              // Tombol Lanjut - Selalu berada di bagian bawah sebelum padding
               SizedBox(
                 width: screenWidth * 0.85,
                 child: Ink(
@@ -357,7 +312,8 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const Login(),
+                          builder: (context) =>
+                              const DetailuserBeratDanTinggi(),
                         ),
                       );
                     },
@@ -370,7 +326,7 @@ class _DetailuserAktivitasState extends State<DetailuserAktivitas> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: const Text(
-                      "Simapan",
+                      "Lanjut",
                       style: TextStyle(
                         color: AppColors.screen,
                         fontSize: 16,

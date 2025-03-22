@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vitacal_app/screen/get_started.dart';
+import 'package:vitacal_app/screen/onboarding/get_started.dart';
 import 'dart:async';
 import 'package:flutter_svg/flutter_svg.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:vitacal_app/screen/detailuser_tujuan.dart';
+import 'package:vitacal_app/screen/detail_user_input/detailuser_tujuan.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
 class DetailuserGender extends StatefulWidget {

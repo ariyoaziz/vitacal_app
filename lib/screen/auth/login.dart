@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:vitacal_app/screen/forgot_password.dart';
+import 'package:vitacal_app/screen/auth/forgot_password.dart';
 import 'package:vitacal_app/screen/home.dart';
-import 'package:vitacal_app/screen/registrasi.dart';
+import 'package:vitacal_app/screen/auth/registrasi.dart';
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_svg/flutter_svg.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vitacal_app/screen/splash_screen.dart';
+import 'package:vitacal_app/screen/onboarding/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());

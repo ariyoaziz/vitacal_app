@@ -1,50 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:vitacal_app/screen/detailuser_aktivitas.dart';
+import 'package:vitacal_app/screen/detail_user_input/detailuser_usia.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
-class DetailuserUsia extends StatefulWidget {
-  const DetailuserUsia({super.key});
+class DetailuserBeratDanTinggi extends StatefulWidget {
+  const DetailuserBeratDanTinggi({super.key});
 
   @override
-  State<DetailuserUsia> createState() => _DetailuserUsiaState();
+  State<DetailuserBeratDanTinggi> createState() =>
+      _DetailuserBeratDanTinggiState();
 }
 
-class _DetailuserUsiaState extends State<DetailuserUsia> {
-  double _progressValue = 0.80;
-  int _tanggal = 1; // Default tanggal
-  int _bulan = 0; // Default bulan (0 untuk Januari)
-  int _tahun = 2000; // Default tahun
+class _DetailuserBeratDanTinggiState extends State<DetailuserBeratDanTinggi> {
+  double _progressValue = 0.64;
+  double _beratBadan = 60.0; // Default berat badan
+  double _tinggiBadan = 160.0; // Default tinggi badan
 
-  // Data untuk Tanggal, Bulan, dan Tahun
-  List<int> tanggalList = List.generate(31, (index) => index + 1); // 1-31
-  List<String> bulanList = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember'
-  ];
-  List<int> tahunList =
-      List.generate(101, (index) => 2025 - index); // 2025-1925
+  // Data untuk Berat Badan dan Tinggi Badan
+  List<int> beratBadanList =
+      List.generate(141, (index) => 10 + index); // 10 kg - 150 kg
+  List<int> tinggiBadanList =
+      List.generate(201, (index) => 50 + index); // 50 cm - 250 cm
 
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-
-    // Menyesuaikan ukuran font dan padding agar responsif
-    double itemHeight = screenHeight * 0.2;
-    double itemWidth =
-        screenWidth * 0.3; // Lebih kecil agar pas di berbagai ukuran layar
-    double fontSize =
-        screenWidth * 0.05; // Ukuran font proporsional dengan lebar layar
+    double itemHeight =
+        screenHeight * 0.2; // 20% tinggi layar untuk setiap scrollable item
+    double itemWidth = screenWidth * 0.4; // 40% lebar layar untuk list wheel
 
     return Scaffold(
       backgroundColor: AppColors.screen,
@@ -97,43 +80,43 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                     Column(
                       children: [
                         // Judul
-                        Text(
-                          "Berapa Usia Anda?",
+                        const Text(
+                          "Berapa Berat dan Tinggi Badanmu?",
                           style: TextStyle(
-                            fontSize: 24, // Ukuran font responsif
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: AppColors.darkGrey,
                           ),
                         ),
                         const SizedBox(height: 11),
-                        Text(
+                        const Text(
                           "Kami ingin mengenal Anda lebih baik untuk menjadikan aplikasi VitaCal dipersonalisasi.",
                           style: TextStyle(
-                            fontSize:
-                                screenWidth * 0.04, // Ukuran font responsif
+                            fontSize: 16,
                             color: AppColors.darkGrey,
                           ),
                           textAlign: TextAlign.center,
                         ),
+
                         const SizedBox(height: 33),
 
-                        // Baris untuk Tanggal, Bulan, dan Tahun
+                        // Baris untuk Berat Badan dan Tinggi Badan
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Kolom Tanggal di Kiri
+                            // Kolom Berat Badan di Kiri
                             Column(
                               children: [
-                                Text(
-                                  "Tanggal",
+                                const Text(
+                                  "Berat Badan",
                                   style: TextStyle(
-                                      fontSize: fontSize,
+                                      fontSize: 18,
                                       color: AppColors.darkGrey,
                                       fontWeight: FontWeight.w800),
                                 ),
                                 const SizedBox(height: 10),
 
-                                // ListWheelScrollView untuk Tanggal
+                                // ListWheelScrollView untuk Berat Badan
                                 Container(
                                   decoration: BoxDecoration(
                                     color: AppColors.screen,
@@ -149,20 +132,23 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                                       physics: FixedExtentScrollPhysics(),
                                       onSelectedItemChanged: (index) {
                                         setState(() {
-                                          _tanggal = tanggalList[index];
+                                          _beratBadan =
+                                              beratBadanList[index].toDouble();
                                         });
                                       },
                                       childDelegate:
                                           ListWheelChildBuilderDelegate(
                                         builder: (context, index) {
                                           bool isSelected = index ==
-                                              tanggalList.indexOf(_tanggal);
+                                              (beratBadanList.indexOf(
+                                                  _beratBadan.toInt()));
                                           return Center(
                                             child: Container(
                                               decoration: BoxDecoration(
                                                 color: isSelected
                                                     ? AppColors.primary
-                                                    : Colors.transparent,
+                                                    : Colors
+                                                        .transparent, // Hijau untuk yang terpilih
                                                 borderRadius:
                                                     BorderRadius.circular(11),
                                               ),
@@ -170,20 +156,39 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                                                   const EdgeInsets.symmetric(
                                                       vertical: 10,
                                                       horizontal: 20),
-                                              child: Text(
-                                                tanggalList[index].toString(),
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isSelected
-                                                      ? AppColors.screen
-                                                      : AppColors.darkGrey,
-                                                ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    beratBadanList[index]
+                                                        .toString(),
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: isSelected
+                                                          ? AppColors.screen
+                                                          : AppColors.darkGrey,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 5),
+                                                  if (isSelected)
+                                                    Text(
+                                                      "kg",
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        color: isSelected
+                                                            ? Colors.white
+                                                            : Colors.black,
+                                                      ),
+                                                    ),
+                                                ],
                                               ),
                                             ),
                                           );
                                         },
-                                        childCount: tanggalList.length,
+                                        childCount: beratBadanList.length,
                                       ),
                                     ),
                                   ),
@@ -191,22 +196,23 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                               ],
                             ),
 
-                            // Kolom Bulan di Tengah
+                            // Kolom Tinggi Badan di Kanan
                             Column(
                               children: [
-                                Text(
-                                  "Bulan",
+                                const Text(
+                                  "Tinggi Badan",
                                   style: TextStyle(
-                                      fontSize: fontSize,
+                                      fontSize: 18,
                                       color: AppColors.darkGrey,
                                       fontWeight: FontWeight.w800),
                                 ),
                                 const SizedBox(height: 10),
 
-                                // ListWheelScrollView untuk Bulan
+                                // ListWheelScrollView untuk Tinggi Badan
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: AppColors.screen,
+                                    color:
+                                        AppColors.screen, // Background default
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   padding:
@@ -215,23 +221,27 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                                     height: itemHeight,
                                     width: itemWidth,
                                     child: ListWheelScrollView.useDelegate(
-                                      itemExtent: 50,
+                                      itemExtent: 50, // Jarak antara item
                                       physics: FixedExtentScrollPhysics(),
                                       onSelectedItemChanged: (index) {
                                         setState(() {
-                                          _bulan = index;
+                                          _tinggiBadan =
+                                              tinggiBadanList[index].toDouble();
                                         });
                                       },
                                       childDelegate:
                                           ListWheelChildBuilderDelegate(
                                         builder: (context, index) {
-                                          bool isSelected = index == _bulan;
+                                          bool isSelected = index ==
+                                              (tinggiBadanList.indexOf(
+                                                  _tinggiBadan.toInt()));
                                           return Center(
                                             child: Container(
                                               decoration: BoxDecoration(
                                                 color: isSelected
                                                     ? AppColors.primary
-                                                    : Colors.transparent,
+                                                    : Colors
+                                                        .transparent, // Hijau untuk yang terpilih
                                                 borderRadius:
                                                     BorderRadius.circular(10),
                                               ),
@@ -239,90 +249,39 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                                                   const EdgeInsets.symmetric(
                                                       vertical: 10,
                                                       horizontal: 20),
-                                              child: Text(
-                                                bulanList[index],
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isSelected
-                                                      ? AppColors.screen
-                                                      : AppColors.darkGrey,
-                                                ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    tinggiBadanList[index]
+                                                        .toString(),
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: isSelected
+                                                          ? AppColors.screen
+                                                          : AppColors.darkGrey,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 5),
+                                                  if (isSelected)
+                                                    Text(
+                                                      "cm",
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        color: isSelected
+                                                            ? Colors.white
+                                                            : Colors.black,
+                                                      ),
+                                                    ),
+                                                ],
                                               ),
                                             ),
                                           );
                                         },
-                                        childCount: bulanList.length,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Kolom Tahun di Kanan
-                            Column(
-                              children: [
-                                Text(
-                                  "Tahun",
-                                  style: TextStyle(
-                                      fontSize: fontSize,
-                                      color: AppColors.darkGrey,
-                                      fontWeight: FontWeight.w800),
-                                ),
-                                const SizedBox(height: 10),
-
-                                // ListWheelScrollView untuk Tahun
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.screen,
-                                    borderRadius: BorderRadius.circular(11),
-                                  ),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  child: SizedBox(
-                                    height: itemHeight,
-                                    width: itemWidth,
-                                    child: ListWheelScrollView.useDelegate(
-                                      itemExtent: 50,
-                                      physics: FixedExtentScrollPhysics(),
-                                      onSelectedItemChanged: (index) {
-                                        setState(() {
-                                          _tahun = tahunList[index];
-                                        });
-                                      },
-                                      childDelegate:
-                                          ListWheelChildBuilderDelegate(
-                                        builder: (context, index) {
-                                          bool isSelected = index ==
-                                              tahunList.indexOf(_tahun);
-                                          return Center(
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? AppColors.primary
-                                                    : Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(11),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 10,
-                                                      horizontal: 20),
-                                              child: Text(
-                                                tahunList[index].toString(),
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isSelected
-                                                      ? AppColors.screen
-                                                      : AppColors.darkGrey,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        childCount: tahunList.length,
+                                        childCount: tinggiBadanList.length,
                                       ),
                                     ),
                                   ),
@@ -350,7 +309,7 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DetailuserAktivitas(),
+                          builder: (context) => const DetailuserUsia(),
                         ),
                       );
                     },

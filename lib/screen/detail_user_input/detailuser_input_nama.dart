@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vitacal_app/screen/detailuser_gender.dart';
+import 'package:vitacal_app/screen/detail_user_input/detailuser_gender.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
 class DetailuserInputNama extends StatefulWidget {
