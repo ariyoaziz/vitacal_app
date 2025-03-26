@@ -2,21 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
-class BottomNavBar extends StatefulWidget {
-  const BottomNavBar({super.key});
+class BottomNavBar extends StatelessWidget {
+  final int selectedIndex;
+  final Function(int) onItemTapped;
 
-  @override
-  State<BottomNavBar> createState() => _BottomNavBarState();
-}
-
-class _BottomNavBarState extends State<BottomNavBar> {
-  int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+  const BottomNavBar({
+    super.key,
+    required this.selectedIndex,
+    required this.onItemTapped,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +21,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
           left: 0,
           right: 0,
           child: Container(
-            height: 70, // Meningkatkan tinggi navbar
+            height: 70,
             decoration: const BoxDecoration(
               color: AppColors.screen,
               boxShadow: [
@@ -39,9 +33,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
               ],
             ),
             child: BottomNavigationBar(
-              backgroundColor: AppColors.screen, // Ganti warna yang diinginkan
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
+              backgroundColor: AppColors.screen,
+              currentIndex: selectedIndex,
+              onTap: onItemTapped,
               type: BottomNavigationBarType.fixed,
               selectedItemColor: AppColors.primary,
               unselectedItemColor: Colors.grey,
@@ -52,7 +46,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                     width: 28,
                     height: 28,
                     colorFilter: ColorFilter.mode(
-                      _selectedIndex == 0 ? AppColors.primary : Colors.grey,
+                      selectedIndex == 0 ? AppColors.primary : Colors.grey,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -64,7 +58,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                     width: 28,
                     height: 28,
                     colorFilter: ColorFilter.mode(
-                      _selectedIndex == 1 ? AppColors.primary : Colors.grey,
+                      selectedIndex == 1 ? AppColors.primary : Colors.grey,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -80,7 +74,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                     width: 28,
                     height: 28,
                     colorFilter: ColorFilter.mode(
-                      _selectedIndex == 3 ? Colors.green : Colors.grey,
+                      selectedIndex == 3 ? Colors.green : Colors.grey,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -92,7 +86,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                     width: 28,
                     height: 28,
                     colorFilter: ColorFilter.mode(
-                      _selectedIndex == 4 ? AppColors.primary : Colors.grey,
+                      selectedIndex == 4 ? AppColors.primary : Colors.grey,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -105,11 +99,11 @@ class _BottomNavBarState extends State<BottomNavBar> {
 
         // Floating Add Button (Tombol Tengah)
         Positioned(
-          bottom: 25, // Diturunkan lagi biar makin proporsional
+          bottom: 25,
           left: MediaQuery.of(context).size.width / 2 - 32,
           child: GestureDetector(
             onTap: () {
-              _onItemTapped(2);
+              onItemTapped(2);
             },
             child: Container(
               width: 64,

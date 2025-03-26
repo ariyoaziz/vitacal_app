@@ -85,7 +85,7 @@ class _HomeState extends State<Home> {
                             ),
                             onPressed: () {},
                           ),
-                          SizedBox(width: 33),
+                          SizedBox(width: 11),
                           IconButton(
                             icon: SvgPicture.asset(
                               "assets/icons/notif.svg",
