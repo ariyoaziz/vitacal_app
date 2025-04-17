@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:vitacal_app/screen/navabar.dart';
+import 'package:vitacal_app/screen/widget/navabar.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
 class Home extends StatefulWidget {
@@ -16,7 +16,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   int selectedIndex = -1; // Indeks untuk menandai hari yang dipilih
 
-  // Mapping nama hari menjadi 2 huruf
+  // Mapping nama hari
   final Map<String, String> shortDays = {
     "Monday": "Mo",
     "Tuesday": "Tu",
@@ -101,8 +101,7 @@ class _HomeState extends State<Home> {
 
                   // Tanggal utama (tanggal hari ini)
                   Text(
-                    DateFormat("d MMMM yyyy")
-                        .format(DateTime.now()), // Format: 22 Maret 2025
+                    DateFormat("d MMMM yyyy").format(DateTime.now()),
                     style: TextStyle(
                       color: AppColors.darkGrey,
                       fontSize: 20.0,
@@ -113,8 +112,7 @@ class _HomeState extends State<Home> {
 
                   // Row hari dan tanggal dalam kotak dengan border
                   SizedBox(
-                    width: double
-                        .infinity, // Agar sejajar dengan header di atasnya
+                    width: double.infinity,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: weekDates.asMap().entries.map((entry) {
@@ -186,8 +184,7 @@ class _HomeState extends State<Home> {
                         fontSize: 14.0,
                         fontWeight: FontWeight.w400,
                       ),
-                      textAlign:
-                          TextAlign.center, // Agar teks lebih rapi di tengah
+                      textAlign: TextAlign.center,
                     ),
                   ),
                   const SizedBox(height: 33),
@@ -195,7 +192,7 @@ class _HomeState extends State<Home> {
                     width: 372,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.primary, // Warna hijau dominan
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(33),
                       boxShadow: [
                         BoxShadow(
@@ -229,11 +226,10 @@ class _HomeState extends State<Home> {
                               children: [
                                 Icon(
                                   Icons.bolt, // Ikon petir
-                                  color: Colors.amber, // Warna kuning keorenan
-                                  size: 28, // Sesuaikan ukuran agar pas
+                                  color: Colors.amber,
+                                  size: 28,
                                 ),
-                                SizedBox(
-                                    height: 5), // Jarak antara ikon dan angka
+                                SizedBox(height: 5),
                                 FittedBox(
                                   child: Text(
                                     '200', // Kalori tersisa
@@ -632,6 +628,7 @@ class _HomeState extends State<Home> {
                           ],
                         ),
                       ),
+                      SizedBox(height: 100),
                     ],
                   )
                 ],
@@ -640,7 +637,19 @@ class _HomeState extends State<Home> {
           ),
         ),
       ),
-      // bottomNavigationBar: BottomNavBar(),
+      // bottomNavigationBar: BottomNavBar(
+      //   selectedIndex: 0,
+      //   onItemTapped: (index) {
+      //     // Navigasi ke halaman yang sesuai
+      //     if (index == 1) {
+      //       Navigator.pushNamed(context, '/search');
+      //     } else if (index == 3) {
+      //       Navigator.pushNamed(context, '/analytics');
+      //     } else if (index == 4) {
+      //       Navigator.pushNamed(context, '/profile');
+      //     }
+      //   },
+      // ),
     );
   }
 }
