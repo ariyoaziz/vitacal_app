@@ -10,6 +10,10 @@ class Analytics extends StatefulWidget {
 class _AnalyticsState extends State<Analytics> {
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      body: const Center(
+        child: Text('Analytics Page'),
+      ),
+    );
   }
 }

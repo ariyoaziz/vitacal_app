@@ -3,6 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
+import 'package:vitacal_app/screen/home/kalender.dart';
+import 'package:vitacal_app/screen/home/lainnya.dart';
+import 'package:vitacal_app/screen/home/makan_malam.dart';
+import 'package:vitacal_app/screen/home/makan_pagi.dart';
+import 'package:vitacal_app/screen/home/makan_siang.dart';
+import 'package:vitacal_app/screen/home/notifikasi.dart';
+// ignore: unused_import
 import 'package:vitacal_app/screen/widget/navabar.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
@@ -59,342 +66,364 @@ class _HomeState extends State<Home> {
         child: Center(
           child: SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.05,
-                vertical: screenHeight * 0.05,
-              ),
-              child: Column(
-                children: [
-                  // Header dengan ikon
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: SvgPicture.asset(
-                          "assets/icons/logo.svg",
-                          height: 35.0,
-                        ),
-                        onPressed: () {},
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: SvgPicture.asset(
-                              "assets/icons/calender.svg",
-                              height: iconSize,
-                            ),
-                            onPressed: () {},
-                          ),
-                          SizedBox(width: 11),
-                          IconButton(
-                            icon: SvgPicture.asset(
-                              "assets/icons/notif.svg",
-                              height: iconSize,
-                            ),
-                            onPressed: () {},
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 33),
-
-                  // Tanggal utama (tanggal hari ini)
-                  Text(
-                    DateFormat("d MMMM yyyy").format(DateTime.now()),
-                    style: TextStyle(
-                      color: AppColors.darkGrey,
-                      fontSize: 20.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 33),
-
-                  // Row hari dan tanggal dalam kotak dengan border
-                  SizedBox(
-                    width: double.infinity,
-                    child: Row(
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.05,
+                  vertical: screenHeight * 0.05,
+                ),
+                child: Column(
+                  children: [
+                    // Header dengan ikon
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: weekDates.asMap().entries.map((entry) {
-                        int index = entry.key;
-                        DateTime date = entry.value;
-
-                        bool isSelected = selectedIndex == index;
-
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedIndex = index;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 13, vertical: 15),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : Colors.black
-                                        .withOpacity(0.5), // Opasitas 50%
-                                width: 0.5, // Border lebih tipis
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  shortDays[DateFormat("EEEE").format(date)]!,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white.withOpacity(0.7)
-                                        : AppColors.darkGrey.withOpacity(0.7),
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  DateFormat("d")
-                                      .format(date), // Hanya angka tanggal
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : AppColors.darkGrey,
-                                    fontSize: 16.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      children: [
+                        IconButton(
+                          icon: SvgPicture.asset(
+                            "assets/icons/logo.svg",
+                            height: 35.0,
                           ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 33),
-                  SizedBox(
-                    width: 280,
-                    child: Text(
-                      "Siap jaga pola makan hari ini? Yuk, hitung kalorimu dan tetap sehat!",
-                      style: TextStyle(
-                        color: AppColors.darkGrey,
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 33),
-                  Container(
-                    width: 372,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(33),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 6,
-                          offset: Offset(0, 4),
+                          onPressed: () {},
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: SvgPicture.asset(
+                                "assets/icons/calender.svg",
+                                height: iconSize,
+                              ),
+                              onPressed: () {
+                                // Panggil dialog kalender dari file terpisah
+                                showKalenderDialog(context);
+                              },
+                            ),
+                            SizedBox(width: 11),
+                            IconButton(
+                              icon: SvgPicture.asset(
+                                "assets/icons/notif.svg",
+                                height: iconSize,
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const Notifikasi(), // Navigasi ke halaman Lupa Kata Sandi
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Indikator Lingkaran Kalori
-                        SizedBox(height: 33),
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            SizedBox(
-                              width: 170,
-                              height: 170,
-                              child: CircularProgressIndicator(
-                                value: 0.8, // 80% progress
-                                backgroundColor: Colors.white.withOpacity(0.2),
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                                strokeWidth: 15,
-                              ),
-                            ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.bolt, // Ikon petir
-                                  color: Colors.amber,
-                                  size: 28,
+                    const SizedBox(height: 33),
+
+                    // Tanggal utama (tanggal hari ini)
+                    Text(
+                      DateFormat("d MMMM yyyy").format(DateTime.now()),
+                      style: TextStyle(
+                        color: AppColors.darkGrey,
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 33),
+
+                    // Row hari dan tanggal dalam kotak dengan border
+                    SizedBox(
+                      width: double.infinity,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: weekDates.asMap().entries.map((entry) {
+                          int index = entry.key;
+                          DateTime date = entry.value;
+
+                          bool isSelected = selectedIndex == index;
+
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedIndex = index;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 13, vertical: 15),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.black
+                                          .withOpacity(0.5), // Opasitas 50%
+                                  width: 0.5, // Border lebih tipis
                                 ),
-                                SizedBox(height: 5),
-                                FittedBox(
-                                  child: Text(
-                                    '200', // Kalori tersisa
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    shortDays[DateFormat("EEEE").format(date)]!,
                                     style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                      color: isSelected
+                                          ? Colors.white.withOpacity(0.7)
+                                          : AppColors.darkGrey.withOpacity(0.7),
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                ),
-                                SizedBox(height: 5),
-                                SizedBox(
-                                  width: 120,
-                                  child: Text(
-                                    "Kalori yang masih bisa dikonsumsi",
-                                    textAlign: TextAlign.center,
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    DateFormat("d")
+                                        .format(date), // Hanya angka tanggal
                                     style: TextStyle(
-                                      fontSize: 13,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : AppColors.darkGrey,
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 33),
+                    SizedBox(
+                      width: 280,
+                      child: Text(
+                        "Siap jaga pola makan hari ini? Yuk, hitung kalorimu dan tetap sehat!",
+                        style: TextStyle(
+                          color: AppColors.darkGrey,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 33),
+                    Container(
+                      width: 372,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(33),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 6,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Indikator Lingkaran Kalori
+                          SizedBox(height: 33),
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                width: 170,
+                                height: 170,
+                                child: CircularProgressIndicator(
+                                  value: 0.8, // 80% progress
+                                  backgroundColor:
+                                      Colors.white.withOpacity(0.2),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                  strokeWidth: 15,
+                                ),
+                              ),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.bolt, // Ikon petir
+                                    color: Colors.amber,
+                                    size: 28,
+                                  ),
+                                  SizedBox(height: 5),
+                                  FittedBox(
+                                    child: Text(
+                                      '200', // Kalori tersisa
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 5),
+                                  SizedBox(
+                                    width: 120,
+                                    child: Text(
+                                      "Kalori yang masih bisa dikonsumsi",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.white.withOpacity(0.8),
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 50),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withOpacity(0.2),
+                                ),
+                                child: Icon(
+                                  Icons.restaurant,
+                                  color: Colors.amber,
+                                  size: 25,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                "2,300 Kkal",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  color: AppColors.cream,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                "Kalori yang sudah dikonsumsi",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 33),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                children: [
+                                  Icon(
+                                    Icons
+                                        .fitness_center, // Ikon otot untuk protein
+                                    color: AppColors.screen,
+                                    size: 24,
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    "Protein",
+                                    style: TextStyle(
+                                      fontSize: 14,
                                       color: Colors.white.withOpacity(0.8),
                                       fontWeight: FontWeight.w400,
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(height: 50),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.2),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    "50g",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: AppColors.cream,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: Icon(
-                                Icons.restaurant,
-                                color: Colors.amber,
-                                size: 25,
+                              Column(
+                                children: [
+                                  Icon(
+                                    Icons.local_fire_department,
+                                    color: AppColors.screen,
+                                    size: 24,
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    "Lemak",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    "30g",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: AppColors.cream,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "2,300 Kkal",
-                              style: TextStyle(
-                                fontSize: 20,
-                                color: AppColors.cream,
-                                fontWeight: FontWeight.bold,
+                              Column(
+                                children: [
+                                  Icon(
+                                    Icons.restaurant_menu,
+                                    color: AppColors.screen,
+                                    size: 24,
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    "Karbohidrat",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    "200g",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: AppColors.cream,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
-                              "Kalori yang sudah dikonsumsi",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white.withOpacity(0.8),
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(height: 33),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              children: [
-                                Icon(
-                                  Icons
-                                      .fitness_center, // Ikon otot untuk protein
-                                  color: AppColors.screen,
-                                  size: 24,
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  "Protein",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  "50g",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.cream,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              children: [
-                                Icon(
-                                  Icons.local_fire_department,
-                                  color: AppColors.screen,
-                                  size: 24,
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  "Lemak",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  "30g",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.cream,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              children: [
-                                Icon(
-                                  Icons.restaurant_menu,
-                                  color: AppColors.screen,
-                                  size: 24,
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  "Karbohidrat",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  "200g",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.cream,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-                      ],
+                            ],
+                          ),
+                          SizedBox(height: 20),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  SizedBox(height: 33),
-                  Column(
-                    children: [
-                      // Makan Pagi
-                      Container(
+                    SizedBox(height: 33),
+                    InkWell(
+                      onTap: () {
+                        // Aksi saat diklik, misalnya pindah ke halaman detail makanan
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const MakanPagi(), // Navigasi ke halaman Makan Pagi
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(
+                          18), // Untuk efek ripple mengikuti border
+                      child: Container(
                         width: 372,
                         padding: const EdgeInsets.symmetric(
                             vertical: 15, horizontal: 20),
@@ -448,10 +477,25 @@ class _HomeState extends State<Home> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 21),
+                    ),
 
-                      // Makan Siang
-                      Container(
+                    SizedBox(height: 21),
+
+                    // Makan Siang
+                    InkWell(
+                      onTap: () {
+                        // Aksi saat diklik, misalnya pindah ke halaman detail makanan
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const MakanSiang(), // Navigasi ke halaman Makan Pagi
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(
+                          18), // Untuk efek ripple mengikuti border
+                      child: Container(
                         width: 372,
                         padding: const EdgeInsets.symmetric(
                             vertical: 15, horizontal: 20),
@@ -477,7 +521,7 @@ class _HomeState extends State<Home> {
                                     shape: BoxShape.circle,
                                     color: Colors.white.withOpacity(0.3),
                                   ),
-                                  child: Icon(Icons.wb_sunny_sharp,
+                                  child: Icon(Icons.wb_sunny_rounded,
                                       color: Colors.orange, size: 28),
                                 ),
                                 SizedBox(width: 15),
@@ -490,7 +534,7 @@ class _HomeState extends State<Home> {
                                             fontWeight: FontWeight.bold,
                                             color: AppColors.darkGrey)),
                                     SizedBox(height: 5),
-                                    Text("Total: 700 Kkal",
+                                    Text("Total: 500 Kkal",
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w400,
@@ -505,10 +549,25 @@ class _HomeState extends State<Home> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 21),
+                    ),
 
-                      // Makan Malam
-                      Container(
+                    SizedBox(height: 21),
+
+                    // Makan Malam
+                    InkWell(
+                      onTap: () {
+                        // Aksi saat diklik, misalnya pindah ke halaman detail makanan
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const MakanMalam(), // Navigasi ke halaman Makan Pagi
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(
+                          18), // Untuk efek ripple mengikuti border
+                      child: Container(
                         width: 372,
                         padding: const EdgeInsets.symmetric(
                             vertical: 15, horizontal: 20),
@@ -547,7 +606,7 @@ class _HomeState extends State<Home> {
                                             fontWeight: FontWeight.bold,
                                             color: AppColors.darkGrey)),
                                     SizedBox(height: 5),
-                                    Text("Total: 600 Kkal",
+                                    Text("Total: 500 Kkal",
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w400,
@@ -562,10 +621,23 @@ class _HomeState extends State<Home> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 21),
+                    ),
 
-                      // Cemilan / Lainnya
-                      Container(
+                    SizedBox(height: 21),
+
+                    InkWell(
+                      onTap: () {
+                        // Aksi saat diklik, misalnya pindah ke halaman detail makanan
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Lainnya(),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(
+                          18), // Untuk efek ripple mengikuti border
+                      child: Container(
                         width: 372,
                         padding: const EdgeInsets.symmetric(
                             vertical: 15, horizontal: 20),
@@ -591,65 +663,55 @@ class _HomeState extends State<Home> {
                                     shape: BoxShape.circle,
                                     color: Colors.white.withOpacity(0.3),
                                   ),
-                                  child: Icon(Icons.more_horiz,
+                                  child: Icon(Icons.fastfood,
                                       color: AppColors.primary, size: 28),
                                 ),
                                 SizedBox(width: 15),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      "Cemilan / Lainnya",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.darkGrey,
-                                      ),
-                                    ),
+                                    Text("Lainnya",
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.darkGrey)),
                                     SizedBox(height: 5),
-                                    Text(
-                                      "Total: 300 Kkal",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w400,
-                                        color:
-                                            AppColors.darkGrey.withOpacity(0.8),
-                                      ),
-                                    ),
+                                    Text("Total: 500 Kkal",
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w400,
+                                            color: AppColors.darkGrey
+                                                .withOpacity(0.8))),
                                   ],
                                 ),
                               ],
                             ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              color: AppColors.darkGrey,
-                              size: 20,
-                            ),
+                            Icon(Icons.arrow_forward_ios,
+                                color: AppColors.darkGrey, size: 20),
                           ],
                         ),
                       ),
-                      SizedBox(height: 100),
-                    ],
-                  )
-                ],
-              ),
-            ),
+                    ),
+
+                    SizedBox(height: 100),
+                  ],
+                )),
           ),
         ),
       ),
-      // bottomNavigationBar: BottomNavBar(
-      //   selectedIndex: 0,
-      //   onItemTapped: (index) {
-      //     // Navigasi ke halaman yang sesuai
-      //     if (index == 1) {
-      //       Navigator.pushNamed(context, '/search');
-      //     } else if (index == 3) {
-      //       Navigator.pushNamed(context, '/analytics');
-      //     } else if (index == 4) {
-      //       Navigator.pushNamed(context, '/profile');
-      //     }
-      //   },
-      // ),
     );
+    // bottomNavigationBar: BottomNavBar(
+    //   selectedIndex: 0,
+    //   onItemTapped: (index) {
+    //     // Navigasi ke halaman yang sesuai
+    //     if (index == 1) {
+    //       Navigator.pushNamed(context, '/search');
+    //     } else if (index == 3) {
+    //       Navigator.pushNamed(context, '/analytics');
+    //     } else if (index == 4) {
+    //       Navigator.pushNamed(context, '/profile');
+    //     }
+    //   },
+    // ),
   }
 }
