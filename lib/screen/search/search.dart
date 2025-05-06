@@ -70,7 +70,8 @@ class _SearchState extends State<Search> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.screen,
+      // ignore: deprecated_member_use
+      backgroundColor: AppColors.screen.withOpacity(0.98),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100),
         child: Container(

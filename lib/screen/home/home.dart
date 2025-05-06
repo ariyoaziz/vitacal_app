@@ -61,7 +61,7 @@ class _HomeState extends State<Home> {
     double iconSize = 24.0; // Ukuran ikon yang konsisten
 
     return Scaffold(
-      backgroundColor: AppColors.screen,
+      backgroundColor: AppColors.screen.withOpacity(0.98),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
