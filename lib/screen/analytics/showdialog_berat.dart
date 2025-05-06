@@ -60,8 +60,10 @@ Future<void> showUpdateBeratDialog({
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor: AppColors.primary,
                             inactiveTrackColor:
+                                // ignore: deprecated_member_use
                                 AppColors.primary.withOpacity(0.3),
                             thumbColor: AppColors.primary,
+                            // ignore: deprecated_member_use
                             overlayColor: AppColors.primary.withOpacity(0.2),
                             valueIndicatorColor: AppColors.primary,
                             showValueIndicator: ShowValueIndicator
