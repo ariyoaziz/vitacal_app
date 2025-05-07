@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:vitacal_app/screen/home/kalender.dart';
 import 'package:vitacal_app/screen/home/lainnya.dart';
 import 'package:vitacal_app/screen/home/makan_malam.dart';
@@ -25,19 +26,20 @@ class _HomeState extends State<Home> {
 
   // Mapping nama hari
   final Map<String, String> shortDays = {
-    "Monday": "Mo",
-    "Tuesday": "Tu",
-    "Wednesday": "We",
-    "Thursday": "Th",
-    "Friday": "Fr",
-    "Saturday": "Sa",
-    "Sunday": "Su",
+    "Monday": "Sen",
+    "Tuesday": "Sel",
+    "Wednesday": "Rab",
+    "Thursday": "Kam",
+    "Friday": "Jum",
+    "Saturday": "Sab",
+    "Sunday": "Min",
   };
 
   late List<DateTime> weekDates; // Daftar tanggal dari Senin sampai Minggu
 
   @override
   void initState() {
+    initializeDateFormatting('id_ID', null); // Inisialisasi lokal Indonesia
     super.initState();
 
     // Cari Senin terdekat sebelum atau sama dengan hari ini
@@ -119,7 +121,7 @@ class _HomeState extends State<Home> {
 
                     // Tanggal utama (tanggal hari ini)
                     Text(
-                      DateFormat("d MMMM yyyy").format(DateTime.now()),
+                      DateFormat("d MMMM yyyy", 'id_ID').format(DateTime.now()),
                       style: TextStyle(
                         color: AppColors.darkGrey,
                         fontSize: 20.0,
@@ -138,6 +140,9 @@ class _HomeState extends State<Home> {
                           DateTime date = entry.value;
 
                           bool isSelected = selectedIndex == index;
+                          bool isToday = DateFormat("yyyy-MM-dd")
+                                  .format(date) ==
+                              DateFormat("yyyy-MM-dd").format(DateTime.now());
 
                           return GestureDetector(
                             onTap: () {
@@ -147,18 +152,19 @@ class _HomeState extends State<Home> {
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 13, vertical: 15),
+                                  horizontal: 11, vertical: 15),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppColors.primary
                                     : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(21),
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.primary
-                                      : Colors.black
-                                          .withOpacity(0.5), // Opasitas 50%
-                                  width: 0.5, // Border lebih tipis
+                                      : (isToday
+                                          ? AppColors.primary
+                                          : Colors.black.withOpacity(0.5)),
+                                  width: isToday ? 1.2 : 0.5,
                                 ),
                               ),
                               child: Column(
@@ -173,10 +179,9 @@ class _HomeState extends State<Home> {
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  const SizedBox(height: 5),
+                                  const SizedBox(height: 6),
                                   Text(
-                                    DateFormat("d")
-                                        .format(date), // Hanya angka tanggal
+                                    DateFormat("d").format(date),
                                     style: TextStyle(
                                       color: isSelected
                                           ? Colors.white

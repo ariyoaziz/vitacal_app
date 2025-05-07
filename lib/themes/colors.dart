@@ -7,6 +7,7 @@ class AppColors {
   static const Color screen = Color(0xFFFAFAFA);
   static const Color darkGrey = Color(0xFF4E4E4E);
   static const Color putih = Color(0xFFF4F6FF);
+  static const Color lightgreen = Color(0xFFAAD6A1);
 
   // Gradient hijau dengan titik perubahan menggunakan persentase
   static const LinearGradient greenGradient = LinearGradient(

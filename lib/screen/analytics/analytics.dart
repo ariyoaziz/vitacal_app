@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vitacal_app/screen/analytics/card_beratgrafik.dart';
 import 'package:vitacal_app/screen/analytics/card_kal.dart';
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:vitacal_app/screen/home/kalender.dart';
@@ -119,11 +120,27 @@ class _AnalyticsState extends State<Analytics> {
               const SizedBox(height: 33),
               // BMI Card
               BmiCard(bmi: bmi),
-              const SizedBox(height: 50),
+              const SizedBox(height: 33),
               KaloriChartCard(),
-              // Widget lainnya
-              SizedBox(height: 20),
-              Text('Grafik kalori mingguan'),
+              const SizedBox(height: 33),
+              CardBeratGrafik(),
+              SizedBox(height: 50),
+              Center(
+                child: SizedBox(
+                  child: Text(
+                    "Yuk, cek kalorimu dan terus melangkah menuju hidup sehat!",
+                    style: TextStyle(
+                      color: AppColors.darkGrey,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 100),
             ],
           ),
         ),

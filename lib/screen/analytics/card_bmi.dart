@@ -25,6 +25,7 @@ class BmiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final status = getBmiStatus(bmi);
     final color = getBmiColor(bmi);
 
