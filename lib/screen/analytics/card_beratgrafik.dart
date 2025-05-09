@@ -85,10 +85,10 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
                       value: selectedRange,
                       icon:
                           const Icon(Icons.expand_more, color: Colors.black87),
-                      dropdownColor: Colors.white,
+                      dropdownColor: AppColors.screen,
                       style:
                           const TextStyle(fontSize: 14, color: Colors.black87),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(11),
                       onChanged: (newValue) {
                         setState(() {
                           selectedRange = newValue!;
@@ -120,10 +120,12 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
                     show: true,
                     drawVerticalLine: true,
                     getDrawingHorizontalLine: (_) => FlLine(
+                      // ignore: deprecated_member_use
                       color: Colors.grey.withOpacity(0.2),
                       strokeWidth: 1,
                     ),
                     getDrawingVerticalLine: (_) => FlLine(
+                      // ignore: deprecated_member_use
                       color: Colors.grey.withOpacity(0.2),
                       strokeWidth: 1,
                     ),
@@ -186,6 +188,7 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
                         show: true,
                         gradient: LinearGradient(
                           colors: [
+                            // ignore: deprecated_member_use
                             AppColors.primary.withOpacity(0.2),
                             Colors.transparent
                           ],

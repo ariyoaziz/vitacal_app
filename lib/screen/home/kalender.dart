@@ -23,7 +23,7 @@ void showKalenderDialog(BuildContext context) {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    "Pilih Tanggal",
+                    "Tanggal",
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -69,7 +69,7 @@ void showKalenderDialog(BuildContext context) {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: const Text(
-                        "Pilih Tanggal Ini",
+                        "Pilih Tanggal",
                         style: TextStyle(
                           fontSize: 16,
                           color: AppColors.screen,

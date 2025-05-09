@@ -62,10 +62,13 @@ class _KaloriChartCardState extends State<KaloriChartCard> {
                           },
                           icon: Icon(Icons.keyboard_arrow_down,
                               size: 20, color: Colors.black87),
+                          dropdownColor: AppColors.screen,
                           style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500),
+                            fontSize: 14,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          borderRadius: BorderRadius.circular(11),
                           items: hari.map((value) {
                             return DropdownMenuItem(
                               value: value,
