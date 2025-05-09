@@ -97,7 +97,7 @@ class _ProfileState extends State<Profile> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  '20 Tahun',
+                                  '17 Tahun',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
@@ -112,9 +112,12 @@ class _ProfileState extends State<Profile> {
                       const SizedBox(height: 33),
                       const Divider(height: 1),
                       const SizedBox(height: 33),
-                      _buildInfoRow('Berat', '160 Cm', isBold: true),
+                      _buildInfoRow('Email', 'ariyoaziz.pratama@gmail.com',
+                          isBold: true),
                       const SizedBox(height: 11),
-                      _buildInfoRow('Tinggi', '45 Kg', isBold: true),
+                      _buildInfoRow('Nomor', '+62 85878743545', isBold: true),
+                      const SizedBox(height: 11),
+                      _buildInfoRow('Status Akun', 'Verifikasi', isBold: true),
                       const SizedBox(height: 11),
                       _buildInfoRow('Tujuan', 'Meningkatkan berat badan',
                           isBold: true),
@@ -194,7 +197,7 @@ class _ProfileState extends State<Profile> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  '160 cm',
+                                  '1600 cm',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
@@ -228,7 +231,7 @@ class _ProfileState extends State<Profile> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  '12 Januari 1990',
+                                  '12 Januari 2008',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
@@ -602,15 +605,20 @@ class _ProfileState extends State<Profile> {
   }
 }
 
-// Tambahkan function ini di luar widget:
 Widget _buildInfoRow(String label, String value, {bool isBold = false}) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(label, style: const TextStyle(color: Colors.black87)),
+      Text(
+        label,
+        style: const TextStyle(color: Colors.black87),
+      ),
       Text(
         value,
         style: TextStyle(
+          color: value.toLowerCase() == 'verifikasi'
+              ? AppColors.lightgreen
+              : Colors.grey,
           fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
