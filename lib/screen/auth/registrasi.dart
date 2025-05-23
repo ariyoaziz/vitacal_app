@@ -51,7 +51,36 @@ class _RegistrasiState extends State<Registrasi> {
                       color: AppColors.primary,
                     ),
                   ),
-                  SizedBox(height: screenHeight * 0.08),
+                  SizedBox(height: screenHeight * 0.05),
+                  SizedBox(
+                    width: screenWidth * 0.8,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Username',
+                        hintText: 'Username',
+                        enabledBorder: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: AppColors.primary, width: 1),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: AppColors.primary, width: 1),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.all(15.0),
+                          child: SvgPicture.asset(
+                            'assets/icons/user.svg',
+                            width: 20, // Sesuaikan lebar ikon
+                            height: 20, // Sesuaikan tinggi ikon
+                          ),
+                        ),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                  ),
+                  SizedBox(height: 33),
                   SizedBox(
                     width: screenWidth * 0.8,
                     child: TextField(
@@ -193,7 +222,7 @@ class _RegistrasiState extends State<Registrasi> {
                       ),
                     ),
                   ),
-                  SizedBox(height: screenHeight * 0.08),
+                  SizedBox(height: screenHeight * 0.05),
                   const Text(
                     "Siap capai tujuan sehatmu?",
                     style: TextStyle(
@@ -258,7 +287,7 @@ class _RegistrasiState extends State<Registrasi> {
                       ],
                     ),
                   ),
-                  SizedBox(height: screenHeight * 0.08),
+                  SizedBox(height: screenHeight * 0.05),
                   SizedBox(
                     width: screenWidth * 0.8,
                     child: Ink(

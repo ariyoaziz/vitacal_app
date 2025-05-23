@@ -69,8 +69,8 @@ class _LoginState extends State<Login> {
                     width: screenWidth * 0.8,
                     child: TextField(
                       decoration: InputDecoration(
-                        labelText: 'Name',
-                        hintText: 'Name',
+                        labelText: 'Username, Nomor Telepon, atau Email',
+                        hintText: 'Username',
                         enabledBorder: OutlineInputBorder(
                           borderSide:
                               BorderSide(color: AppColors.primary, width: 1),
