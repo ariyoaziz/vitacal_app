@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vitacal_app/screen/auth/login.dart';
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vitacal_app/screen/widgets/dialog.dart';
 
 class ResetPassword extends StatefulWidget {
   const ResetPassword({super.key});
@@ -163,11 +164,19 @@ class _ResetPasswordState extends State<ResetPassword> {
                     ),
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
+                        CustomDialog.show(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const Login(),
-                          ),
+                          title: "Berhasil",
+                          message: "Kata sandi berhasil diubah.",
+                          type: DialogType.success,
+                          showOkButton: true,
+                          okButtonText: 'Login',
+                          onOkPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const Login()),
+                            );
+                          },
                         );
                       },
                       style: ElevatedButton.styleFrom(

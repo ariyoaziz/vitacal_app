@@ -4,10 +4,12 @@ import 'package:vitacal_app/screen/camera/camera.dart';
 import 'package:vitacal_app/screen/home/home.dart';
 import 'package:vitacal_app/screen/profile/profile.dart';
 import 'package:vitacal_app/screen/search/search.dart';
-import 'package:vitacal_app/screen/widget/navabar.dart';
+import 'package:vitacal_app/screen/widgets/navabar.dart';
+import 'package:vitacal_app/screen/widgets/dialog.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  final bool showSuccessDialog; // Tambahkan parameter opsional
+  const MainPage({super.key, this.showSuccessDialog = false});
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -28,6 +30,25 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.showSuccessDialog) {
+      Future.delayed(Duration.zero, () {
+        CustomDialog.show(
+          // ignore: use_build_context_synchronously
+          context,
+          title: 'Login Berhasil',
+          message: 'Selamat datang kembali!',
+          type: DialogType.success,
+          autoDismiss: true,
+          dismissDuration: Duration(seconds: 1),
+        );
+      });
+    }
   }
 
   @override

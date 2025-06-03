@@ -11,7 +11,7 @@ import 'package:vitacal_app/screen/home/makan_pagi.dart';
 import 'package:vitacal_app/screen/home/makan_siang.dart';
 import 'package:vitacal_app/screen/home/notifikasi.dart';
 // ignore: unused_import
-import 'package:vitacal_app/screen/widget/navabar.dart';
+import 'package:vitacal_app/screen/widgets/navabar.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
 class Home extends StatefulWidget {
@@ -56,6 +56,13 @@ class _HomeState extends State<Home> {
         DateFormat("yyyy-MM-dd").format(today));
   }
 
+  Future<void> _refreshData() async {
+    await Future.delayed(const Duration(seconds: 1)); // Simulasi refresh
+    setState(() {
+      // Tambahkan logika pembaruan data jika perlu
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -65,8 +72,14 @@ class _HomeState extends State<Home> {
     return Scaffold(
       backgroundColor: AppColors.screen.withOpacity(0.98),
       body: SafeArea(
-        child: Center(
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          color: AppColors.primary,
+          backgroundColor: AppColors.screen,
+          strokeWidth: 3,
+          displacement: 60,
           child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: screenWidth * 0.05,

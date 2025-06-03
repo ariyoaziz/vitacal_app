@@ -170,10 +170,11 @@ class _LoginState extends State<Login> {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const MainPage(),
+                              builder: (context) =>
+                                  const MainPage(showSuccessDialog: true),
                             ),
                           );
                         },
