@@ -1,22 +1,32 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
-import 'package:vitacal_app/screen/detail_user_input/detailuser_aktivitas.dart';
+import 'package:vitacal_app/models/user_detail_form_data.dart';
+import 'package:vitacal_app/screen/detail_user_input/detailuser_berat_dan_tinggi.dart';
+
 import 'package:vitacal_app/themes/colors.dart';
 
 class DetailuserUsia extends StatefulWidget {
-  const DetailuserUsia({super.key});
+  final UserDetailFormData formData;
+
+  const DetailuserUsia({super.key, required this.formData});
 
   @override
   State<DetailuserUsia> createState() => _DetailuserUsiaState();
 }
 
 class _DetailuserUsiaState extends State<DetailuserUsia> {
-  double _progressValue = 0.80;
-  int _tanggal = 1; // Default tanggal
-  int _bulan = 0; // Default bulan (0 untuk Januari)
-  int _tahun = 2000; // Default tahun
+  final double _progressValue = 0.50;
 
-  // Data untuk Tanggal, Bulan, dan Tahun
-  List<int> tanggalList = List.generate(31, (index) => index + 1); // 1-31
+  late int _selectedTanggal;
+  late int _selectedBulanIndex;
+  late int _selectedTahun;
+
+  late FixedExtentScrollController _tanggalController;
+  late FixedExtentScrollController _bulanController;
+  late FixedExtentScrollController _tahunController;
+
+  List<int> tanggalList = List.generate(31, (index) => index + 1);
   List<String> bulanList = [
     'Januari',
     'Februari',
@@ -32,19 +42,112 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
     'Desember'
   ];
   List<int> tahunList =
-      List.generate(101, (index) => 2025 - index); // 2025-1925
+      List.generate(101, (index) => DateTime.now().year - index);
+
+  String? _usiaErrorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    DateTime? dob = widget.formData.tanggalLahir;
+    if (dob != null) {
+      _selectedTanggal = dob.day;
+      _selectedBulanIndex = dob.month - 1;
+      _selectedTahun = dob.year;
+    } else {
+      _selectedTanggal = 1;
+      _selectedBulanIndex = 0;
+      _selectedTahun = 2000;
+    }
+
+    _tanggalController = FixedExtentScrollController(
+      initialItem: tanggalList.indexOf(_selectedTanggal),
+    );
+    _bulanController = FixedExtentScrollController(
+      initialItem: _selectedBulanIndex,
+    );
+    _tahunController = FixedExtentScrollController(
+      initialItem: tahunList.indexOf(_selectedTahun),
+    );
+  }
+
+  @override
+  void dispose() {
+    _tanggalController.dispose();
+    _bulanController.dispose();
+    _tahunController.dispose();
+    super.dispose();
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    DateTime currentDate = DateTime.now();
+    int age = currentDate.year - birthDate.year;
+    int month1 = currentDate.month;
+    int month2 = birthDate.month;
+    if (month2 > month1) {
+      age--;
+    } else if (month1 == month2) {
+      int day1 = currentDate.day;
+      int day2 = birthDate.day;
+      if (day2 > day1) {
+        age--;
+      }
+    }
+    return age;
+  }
+
+  void _onNextPressed() {
+    setState(() {
+      _usiaErrorMessage = null;
+    });
+
+    DateTime birthDate;
+    try {
+      birthDate =
+          DateTime(_selectedTahun, _selectedBulanIndex + 1, _selectedTanggal);
+      if (birthDate.day != _selectedTanggal ||
+          birthDate.month != (_selectedBulanIndex + 1) ||
+          birthDate.year != _selectedTahun) {
+        throw FormatException();
+      }
+    } catch (e) {
+      setState(() {
+        _usiaErrorMessage =
+            "Ups, tanggal lahirnya ada yang aneh nih. Cek kembali tanggal, bulan, dan tahun ya!";
+      });
+      return;
+    }
+
+    int umur = _calculateAge(birthDate);
+
+    if (umur < 10 || umur > 100) {
+      setState(() {
+        _usiaErrorMessage =
+            "Umurmu harus antara 10-100 tahun ya! Kami ingin VitaCal pas untukmu.";
+      });
+      return;
+    }
+
+    final updatedFormData = widget.formData.copyWith(
+      umur: umur,
+      tanggalLahir: birthDate,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            DetailuserBeratDanTinggi(formData: updatedFormData),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-
-    // Menyesuaikan ukuran font dan padding agar responsif
-    double itemHeight = screenHeight * 0.2;
-    double itemWidth =
-        screenWidth * 0.3; // Lebih kecil agar pas di berbagai ukuran layar
-    double fontSize =
-        screenWidth * 0.05; // Ukuran font proporsional dengan lebar layar
+    double itemHeight = screenHeight * 0.08;
+    double pickerWidth = screenWidth * 0.28;
 
     return Scaffold(
       backgroundColor: AppColors.screen,
@@ -52,15 +155,13 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.05,
-            vertical: screenHeight * 0.05, // Padding atas & bawah
+            vertical: screenHeight * 0.05,
           ),
           child: Column(
             children: [
-              // Baris untuk Progress dan Tombol Back
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Tombol Back
                   Ink(
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.primary, width: 0.5),
@@ -69,12 +170,10 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                     child: IconButton(
                       icon: Icon(Icons.arrow_back, color: AppColors.primary),
                       onPressed: () {
-                        Navigator.pop(context); // Kembali ke halaman sebelumnya
+                        Navigator.pop(context);
                       },
                     ),
                   ),
-
-                  // Garis Progress
                   SizedBox(
                     width: screenWidth * 0.73,
                     child: LinearProgressIndicator(
@@ -88,246 +187,82 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                   ),
                 ],
               ),
-
-              // Expanded untuk menyesuaikan layout agar button tetap di bawah
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Column(
                       children: [
-                        // Judul
                         Text(
                           "Berapa Usia Anda?",
                           style: TextStyle(
-                            fontSize: 24, // Ukuran font responsif
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: AppColors.darkGrey,
                           ),
                         ),
+                        if (_usiaErrorMessage != null)
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                            child: Text(
+                              _usiaErrorMessage!,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 13),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         const SizedBox(height: 11),
                         Text(
                           "Kami ingin mengenal Anda lebih baik untuk menjadikan aplikasi VitaCal dipersonalisasi.",
                           style: TextStyle(
-                            fontSize:
-                                screenWidth * 0.04, // Ukuran font responsif
+                            fontSize: screenWidth * 0.04,
                             color: AppColors.darkGrey,
                           ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 33),
-
-                        // Baris untuk Tanggal, Bulan, dan Tahun
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            // Kolom Tanggal di Kiri
-                            Column(
-                              children: [
-                                Text(
-                                  "Tanggal",
-                                  style: TextStyle(
-                                      fontSize: fontSize,
-                                      color: AppColors.darkGrey,
-                                      fontWeight: FontWeight.w800),
-                                ),
-                                const SizedBox(height: 10),
-
-                                // ListWheelScrollView untuk Tanggal
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.screen,
-                                    borderRadius: BorderRadius.circular(11),
-                                  ),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  child: SizedBox(
-                                    height: itemHeight,
-                                    width: itemWidth,
-                                    child: ListWheelScrollView.useDelegate(
-                                      itemExtent: 50, // Jarak antara item
-                                      physics: FixedExtentScrollPhysics(),
-                                      onSelectedItemChanged: (index) {
-                                        setState(() {
-                                          _tanggal = tanggalList[index];
-                                        });
-                                      },
-                                      childDelegate:
-                                          ListWheelChildBuilderDelegate(
-                                        builder: (context, index) {
-                                          bool isSelected = index ==
-                                              tanggalList.indexOf(_tanggal);
-                                          return Center(
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? AppColors.primary
-                                                    : Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(11),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 10,
-                                                      horizontal: 20),
-                                              child: Text(
-                                                tanggalList[index].toString(),
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isSelected
-                                                      ? AppColors.screen
-                                                      : AppColors.darkGrey,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        childCount: tanggalList.length,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            _buildDatePickerColumn<int>(
+                              context: context,
+                              label: "Tanggal",
+                              list: tanggalList,
+                              controller: _tanggalController,
+                              onSelectedItemChanged: (index) {
+                                setState(() {
+                                  _selectedTanggal = tanggalList[index];
+                                });
+                              },
+                              itemHeight: itemHeight,
+                              pickerWidth: pickerWidth,
                             ),
-
-                            // Kolom Bulan di Tengah
-                            Column(
-                              children: [
-                                Text(
-                                  "Bulan",
-                                  style: TextStyle(
-                                      fontSize: fontSize,
-                                      color: AppColors.darkGrey,
-                                      fontWeight: FontWeight.w800),
-                                ),
-                                const SizedBox(height: 10),
-
-                                // ListWheelScrollView untuk Bulan
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.screen,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  child: SizedBox(
-                                    height: itemHeight,
-                                    width: itemWidth,
-                                    child: ListWheelScrollView.useDelegate(
-                                      itemExtent: 50,
-                                      physics: FixedExtentScrollPhysics(),
-                                      onSelectedItemChanged: (index) {
-                                        setState(() {
-                                          _bulan = index;
-                                        });
-                                      },
-                                      childDelegate:
-                                          ListWheelChildBuilderDelegate(
-                                        builder: (context, index) {
-                                          bool isSelected = index == _bulan;
-                                          return Center(
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? AppColors.primary
-                                                    : Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 10,
-                                                      horizontal: 20),
-                                              child: Text(
-                                                bulanList[index],
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isSelected
-                                                      ? AppColors.screen
-                                                      : AppColors.darkGrey,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        childCount: bulanList.length,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            _buildDatePickerColumn<String>(
+                              context: context,
+                              label: "Bulan",
+                              list: bulanList,
+                              controller: _bulanController,
+                              onSelectedItemChanged: (index) {
+                                setState(() {
+                                  _selectedBulanIndex = index;
+                                });
+                              },
+                              itemHeight: itemHeight,
+                              pickerWidth: pickerWidth,
                             ),
-
-                            // Kolom Tahun di Kanan
-                            Column(
-                              children: [
-                                Text(
-                                  "Tahun",
-                                  style: TextStyle(
-                                      fontSize: fontSize,
-                                      color: AppColors.darkGrey,
-                                      fontWeight: FontWeight.w800),
-                                ),
-                                const SizedBox(height: 10),
-
-                                // ListWheelScrollView untuk Tahun
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.screen,
-                                    borderRadius: BorderRadius.circular(11),
-                                  ),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  child: SizedBox(
-                                    height: itemHeight,
-                                    width: itemWidth,
-                                    child: ListWheelScrollView.useDelegate(
-                                      itemExtent: 50,
-                                      physics: FixedExtentScrollPhysics(),
-                                      onSelectedItemChanged: (index) {
-                                        setState(() {
-                                          _tahun = tahunList[index];
-                                        });
-                                      },
-                                      childDelegate:
-                                          ListWheelChildBuilderDelegate(
-                                        builder: (context, index) {
-                                          bool isSelected = index ==
-                                              tahunList.indexOf(_tahun);
-                                          return Center(
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? AppColors.primary
-                                                    : Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(11),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 10,
-                                                      horizontal: 20),
-                                              child: Text(
-                                                tahunList[index].toString(),
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isSelected
-                                                      ? AppColors.screen
-                                                      : AppColors.darkGrey,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        childCount: tahunList.length,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            _buildDatePickerColumn<int>(
+                              context: context,
+                              label: "Tahun",
+                              list: tahunList,
+                              controller: _tahunController,
+                              onSelectedItemChanged: (index) {
+                                setState(() {
+                                  _selectedTahun = tahunList[index];
+                                });
+                              },
+                              itemHeight: itemHeight,
+                              pickerWidth: pickerWidth,
                             ),
                           ],
                         ),
@@ -336,8 +271,6 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                   ],
                 ),
               ),
-
-              // Tombol Lanjut - Selalu berada di bagian bawah sebelum padding
               SizedBox(
                 width: screenWidth * 0.85,
                 child: Ink(
@@ -346,14 +279,7 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DetailuserAktivitas(),
-                        ),
-                      );
-                    },
+                    onPressed: _onNextPressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -365,7 +291,7 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                     child: const Text(
                       "Lanjut",
                       style: TextStyle(
-                        color: AppColors.screen,
+                        color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -377,6 +303,104 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDatePickerColumn<T>({
+    required BuildContext context,
+    required String label,
+    required List<T> list,
+    required FixedExtentScrollController controller,
+    required ValueChanged<int> onSelectedItemChanged,
+    required double itemHeight,
+    required double pickerWidth,
+  }) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.darkGrey,
+          ),
+        ),
+        const SizedBox(height: 33),
+        Container(
+          width: pickerWidth,
+          height: itemHeight * 3,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(21),
+            // Hapus border standar yang kaku
+            // border: Border.all(color: AppColors.primary, width: 1), // Ini akan dihapus
+
+            color: AppColors.screen, // Latar belakang picker yang bersih
+          ),
+          child: ListWheelScrollView.useDelegate(
+            controller: controller,
+            itemExtent: itemHeight,
+            perspective: 0.005,
+            diameterRatio: 1.5,
+            physics: const FixedExtentScrollPhysics(),
+            onSelectedItemChanged: onSelectedItemChanged,
+            childDelegate: ListWheelChildBuilderDelegate(
+              builder: (context, index) {
+                if (index < 0 || index >= list.length) {
+                  return null;
+                }
+                final item = list[index];
+                final bool isSelected;
+                if (T == String) {
+                  isSelected = (index == _selectedBulanIndex);
+                } else {
+                  isSelected =
+                      (item == _selectedTanggal || item == _selectedTahun);
+                }
+
+                return Center(
+                  child: AnimatedContainer(
+                    // Menggunakan AnimatedContainer untuk transisi background
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    width: isSelected
+                        ? pickerWidth * 0.8
+                        : pickerWidth * 0.7, // Sedikit melebar saat dipilih
+                    height: isSelected
+                        ? itemHeight * 0.8
+                        : itemHeight * 0.7, // Sedikit membesar saat dipilih
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withOpacity(0.1)
+                          : Colors.transparent, // Highlight background samar
+                      borderRadius: BorderRadius.circular(
+                          10), // Sudut bulat untuk highlight
+                      border: isSelected
+                          ? Border.all(color: AppColors.primary, width: 1.5)
+                          : null, // Border saat dipilih
+                    ),
+                    alignment: Alignment.center,
+                    child: AnimatedDefaultTextStyle(
+                      style: TextStyle(
+                        fontSize: isSelected ? 18 : 16,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color:
+                            isSelected ? AppColors.primary : AppColors.darkGrey,
+                      ),
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      child: Text(
+                        item.toString(),
+                      ),
+                    ),
+                  ),
+                );
+              },
+              childCount: list.length,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

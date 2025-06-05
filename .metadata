@@ -4,7 +4,7 @@
 # This file should be version controlled and should not be manually edited.
 
 version:
-  revision: "8dc45cddff7cb22ee96536ee7ea054af060457a0"
+  revision: "5783cb8b7e850fd375f44a2b184fc23b834d0ad1"
   channel: "stable"
 
 project_type: app
@@ -13,11 +13,11 @@ project_type: app
 migration:
   platforms:
     - platform: root
-      create_revision: 8dc45cddff7cb22ee96536ee7ea054af060457a0
-      base_revision: 8dc45cddff7cb22ee96536ee7ea054af060457a0
+      create_revision: 5783cb8b7e850fd375f44a2b184fc23b834d0ad1
+      base_revision: 5783cb8b7e850fd375f44a2b184fc23b834d0ad1
     - platform: android
-      create_revision: 8dc45cddff7cb22ee96536ee7ea054af060457a0
-      base_revision: 8dc45cddff7cb22ee96536ee7ea054af060457a0
+      create_revision: 5783cb8b7e850fd375f44a2b184fc23b834d0ad1
+      base_revision: 5783cb8b7e850fd375f44a2b184fc23b834d0ad1
 
   # User provided section
 

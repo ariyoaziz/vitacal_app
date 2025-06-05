@@ -4,11 +4,14 @@ import 'package:vitacal_app/screen/camera/camera.dart';
 import 'package:vitacal_app/screen/home/home.dart';
 import 'package:vitacal_app/screen/profile/profile.dart';
 import 'package:vitacal_app/screen/search/search.dart';
-import 'package:vitacal_app/screen/widgets/navabar.dart';
-import 'package:vitacal_app/screen/widgets/dialog.dart';
+import 'package:vitacal_app/screen/widgets/costum_dialog.dart';
+import 'package:vitacal_app/screen/widgets/navabar.dart'; // Pastikan path ini benar
+// Hapus import yang tidak terpakai:
+// import 'package:vitacal_app/screen/widgets/dialog.dart'; // Ini mungkin file lama Anda
 
 class MainPage extends StatefulWidget {
-  final bool showSuccessDialog; // Tambahkan parameter opsional
+  final bool
+      showSuccessDialog; // Parameter opsional untuk menampilkan dialog sukses
   const MainPage({super.key, this.showSuccessDialog = false});
 
   @override
@@ -37,15 +40,23 @@ class _MainPageState extends State<MainPage> {
     super.initState();
 
     if (widget.showSuccessDialog) {
-      Future.delayed(Duration.zero, () {
-        CustomDialog.show(
-          // ignore: use_build_context_synchronously
-          context,
-          title: 'Login Berhasil',
-          message: 'Selamat datang kembali!',
-          type: DialogType.success,
-          autoDismiss: true,
-          dismissDuration: Duration(seconds: 1),
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false, // Tidak bisa ditutup sembarangan
+          builder: (BuildContext dialogContext) {
+            return CustomAlertDialog(
+              title: 'Login Berhasil!',
+              message: 'Selamat datang kembali di VitaCal!',
+              type: DialogType.success,
+              showButton: false, // Tampilkan tombol
+              autoDismissDuration: const Duration(seconds: 2),
+              onButtonPressed: () {
+                // Opsional: Lakukan sesuatu setelah dialog ditutup
+                print("Dialog login berhasil ditutup.");
+              },
+            );
+          },
         );
       });
     }
@@ -53,17 +64,22 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        _pages[_selectedIndex],
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: BottomNavBar(
-            selectedIndex: _selectedIndex,
-            onItemTapped: _onItemTapped,
+    return Scaffold(
+      // <--- Tambahkan Scaffold di sini
+      body: Stack(
+        children: [
+          // Konten halaman yang sedang aktif
+          _pages[_selectedIndex],
+          // Bottom Navigation Bar
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: BottomNavBar(
+              selectedIndex: _selectedIndex,
+              onItemTapped: _onItemTapped,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
