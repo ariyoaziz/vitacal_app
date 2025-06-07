@@ -7,7 +7,9 @@ import 'package:vitacal_app/blocs/auth/auth_bloc.dart';
 import 'package:vitacal_app/blocs/auth/auth_event.dart';
 import 'package:vitacal_app/blocs/auth/auth_state.dart';
 import 'package:vitacal_app/screen/auth/forgot_password.dart';
+import 'package:vitacal_app/screen/auth/otp/otp_registrasi.dart';
 import 'package:vitacal_app/screen/auth/registrasi.dart';
+import 'package:vitacal_app/screen/detail_user_input/detailuser_input_nama.dart';
 import 'package:vitacal_app/screen/widgets/costum_dialog.dart';
 
 import 'package:vitacal_app/themes/colors.dart';
@@ -66,7 +68,7 @@ class _LoginState extends State<Login> {
                 right: screenWidth * 0.05,
               ),
               child: BlocListener<AuthBloc, AuthState>(
-                listener: (context, state) {
+                listener: (context, state) async {
                   // Mengatur status loading
                   if (state is AuthLoading) {
                     setState(() {
@@ -78,17 +80,16 @@ class _LoginState extends State<Login> {
                     });
                   }
 
-                  // --- MENCEGAH DUPLIKASI DIALOG (Di sini sudah benar) ---
+                  // Mencegah duplikasi dialog
                   if (_isDialogShowing) {
-                    return; // Jika dialog sudah tampil, jangan tampilkan lagi
+                    return;
                   }
-                  // --- AKHIR PENCEGAHAN ---
 
                   // Penanganan state login berhasil
                   if (state is AuthLoginSuccess) {
                     setState(() {
                       _isDialogShowing = true;
-                    }); // Set flag saat navigasi
+                    });
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -97,7 +98,6 @@ class _LoginState extends State<Login> {
                         ),
                       ),
                     ).then((_) {
-                      // Reset flag setelah navigasi selesai
                       if (mounted) {
                         setState(() {
                           _isDialogShowing = false;
@@ -108,13 +108,19 @@ class _LoginState extends State<Login> {
                   // Penanganan state error login
                   else if (state is AuthError) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    _isDialogShowing =
-                        true; // <--- Pindahkan flag ini ke sini, di luar setState
-                    setState(() {}); // Memaksa rebuild untuk menampilkan dialog
+                    _isDialogShowing = true;
+                    setState(() {});
 
                     String dialogTitle = "Login Gagal!";
                     String dialogMessage = state.message;
                     DialogType dialogType = DialogType.error;
+
+                    bool navigateToOtpRegistrasi = false;
+                    bool navigateToProfileCompletion = false;
+
+                    // Ambil userId dan phoneNumber langsung dari AuthError state
+                    final int? userIdFromState = state.userId;
+                    final String? phoneNumberFromState = state.phoneNumber;
 
                     final cleanMessage = state.message.trim();
 
@@ -134,6 +140,15 @@ class _LoginState extends State<Login> {
                       dialogMessage =
                           "Akunmu belum diverifikasi. Mohon cek OTP di WhatsApp untuk verifikasi.";
                       dialogType = DialogType.warning;
+                      navigateToOtpRegistrasi = true;
+                      // userIdFromState dan phoneNumberFromState sudah diambil dari state
+                    } else if (cleanMessage
+                        .contains("Profil Anda belum lengkap")) {
+                      dialogTitle = "Lengkapi Profil Anda!";
+                      dialogMessage =
+                          "Profil Anda belum lengkap. Mohon lengkapi data diri Anda untuk dapat login.";
+                      dialogType = DialogType.warning;
+                      navigateToProfileCompletion = true;
                     } else if (cleanMessage
                         .contains("Gagal terhubung ke server")) {
                       dialogTitle = "Jaringanmu Bermasalah?";
@@ -151,7 +166,8 @@ class _LoginState extends State<Login> {
                       dialogType = DialogType.error;
                     }
 
-                    showDialog(
+                    // Menampilkan CustomAlertDialog
+                    await showDialog(
                       context: context,
                       barrierDismissible: false,
                       builder: (BuildContext dialogContext) {
@@ -163,14 +179,62 @@ class _LoginState extends State<Login> {
                           showButton: true,
                         );
                       },
-                    ).then((_) {
-                      // Reset flag setelah dialog ditutup
-                      if (mounted) {
-                        setState(() {
-                          _isDialogShowing = false;
-                        });
+                    );
+
+                    // Reset flag setelah dialog ditutup
+                    if (mounted) {
+                      setState(() {
+                        _isDialogShowing = false;
+                      });
+                    }
+
+                    // --- Logika navigasi setelah dialog ditutup ---
+                    if (navigateToOtpRegistrasi) {
+                      // Pastikan userId dan phoneNumber tidak null sebelum navigasi
+                      if (userIdFromState != null &&
+                          phoneNumberFromState != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OtpRegistrasi(
+                              userId:
+                                  userIdFromState, // Menggunakan userId dari AuthError state
+                              phoneNumber:
+                                  phoneNumberFromState, // Menggunakan phoneNumber dari AuthError state
+                            ),
+                          ),
+                        );
+                      } else {
+                        // Tampilkan SnackBar jika informasi tidak lengkap (misal: backend tidak mengirimkan data ini)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  "Tidak dapat melanjutkan verifikasi. Informasi pengguna tidak lengkap atau backend tidak menyediakan data.")),
+                        );
                       }
-                    });
+                    } else if (navigateToProfileCompletion) {
+                      // --- PERBAIKAN: Navigasi ke DetailuserInputNama ---
+                      // Pastikan userIdFromState tidak null sebelum navigasi
+                      if (userIdFromState != null) {
+                        Navigator.pushReplacement(
+                          // Menggunakan pushReplacement sesuai permintaan
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailuserInputNama(
+                              userId:
+                                  userIdFromState, // Meneruskan userId dari AuthError state
+                            ),
+                          ),
+                        );
+                      } else {
+                        // Jika userId tidak tersedia dan UserDetailScreen memerlukannya
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  "Tidak dapat melanjutkan ke lengkapi profil. Informasi user ID tidak tersedia.")),
+                        );
+                      }
+                    }
                   }
                 },
                 child: LayoutBuilder(
@@ -404,8 +468,7 @@ class _LoginState extends State<Login> {
                                 opacity: _isLoading ? 1.0 : 0.0,
                                 duration: const Duration(milliseconds: 300),
                                 child: Container(
-                                  color: Colors.black.withOpacity(
-                                      0.0), // Background tetap transparan (0.0 opacity)
+                                  color: Colors.black.withOpacity(0.0),
                                   child: Center(
                                     child: CircularProgressIndicator(
                                       valueColor: AlwaysStoppedAnimation<Color>(

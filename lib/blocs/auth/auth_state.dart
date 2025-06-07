@@ -9,7 +9,7 @@ abstract class AuthState extends Equatable {
   const AuthState();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => []; // <--- UBAH DI SINI: tambahkan '?'
 }
 
 class AuthInitial extends AuthState {}
@@ -18,14 +18,18 @@ class AuthLoading extends AuthState {}
 
 class AuthRegisterSuccess extends AuthState {
   final OtpResponse otpResponse;
-  final int userId; // <--- PASTIKAN INI INT
+  final int userId;
   final String phoneNumber;
 
   const AuthRegisterSuccess(this.otpResponse,
       {required this.userId, required this.phoneNumber});
 
   @override
-  List<Object> get props => [otpResponse, userId, phoneNumber];
+  List<Object?> get props => [
+        otpResponse,
+        userId,
+        phoneNumber
+      ]; // <--- UBAH DI SINI juga (Opsional, tapi konsisten)
 }
 
 class AuthOtpVerified extends AuthState {
@@ -34,16 +38,20 @@ class AuthOtpVerified extends AuthState {
   const AuthOtpVerified(this.user);
 
   @override
-  List<Object> get props => [user];
+  List<Object?> get props =>
+      [user]; // <--- UBAH DI SINI juga (Opsional, tapi konsisten)
 }
 
 class AuthError extends AuthState {
   final String message;
+  final int? userId; // Properti nullable
+  final String? phoneNumber; // Properti nullable
 
-  const AuthError(this.message);
+  const AuthError(this.message, {this.userId, this.phoneNumber});
 
   @override
-  List<Object> get props => [message];
+  List<Object?> get props =>
+      [message, userId, phoneNumber]; // <--- UBAH DI SINI
 }
 
 class AuthLoginSuccess extends AuthState {
@@ -52,7 +60,8 @@ class AuthLoginSuccess extends AuthState {
   const AuthLoginSuccess(this.loginResponse);
 
   @override
-  List<Object> get props => [loginResponse];
+  List<Object?> get props =>
+      [loginResponse]; // <--- UBAH DI SINI juga (Opsional, tapi konsisten)
 }
 
 class AuthAuthenticated extends AuthState {
@@ -61,7 +70,8 @@ class AuthAuthenticated extends AuthState {
   const AuthAuthenticated(this.user);
 
   @override
-  List<Object> get props => [user];
+  List<Object?> get props =>
+      [user]; // <--- UBAH DI SINI juga (Opsional, tapi konsisten)
 }
 
 class AuthUnauthenticated extends AuthState {}

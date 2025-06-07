@@ -2,11 +2,13 @@
 
 class AuthException implements Exception {
   final String message;
+  final int? userId; // <--- TAMBAHKAN INI
+  final String? phoneNumber; // <--- TAMBAHKAN INI
 
-  const AuthException(this.message);
+  AuthException(this.message,
+      {this.userId, this.phoneNumber}); // <--- SESUAIKAN CONSTRUCTOR
 
   @override
-  String toString() {
-    return message; // Hanya mengembalikan pesan, tanpa prefiks "Exception: "
-  }
+  String toString() =>
+      'AuthException: $message' + (userId != null ? ' (User ID: $userId)' : '');
 }

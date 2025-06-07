@@ -2,13 +2,16 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vitacal_app/models/otp_model.dart'; // Asumsi ini otp_model.dart Anda
 import 'package:vitacal_app/exceptions/auth_exception.dart';
 import 'package:vitacal_app/models/login_respon_model.dart'; // Asumsi ini login_response_model.dart Anda
 
 class AuthService {
-  final String _baseUrl = 'http://192.168.241.211:5000';
+  final String _baseUrl =
+      'http://192.168.241.211:5000'; // Pastikan IP ini benar!
+
   Future<OtpResponse> registerUser({
     required String username,
     required String email,
@@ -160,13 +163,38 @@ class AuthService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print('AuthService: Login berhasil: $responseData');
+
+        final String? accessToken = responseData['access_token'];
+        if (accessToken != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('jwt_token', accessToken);
+          final String? storedToken = prefs.getString('jwt_token');
+          print(
+              'AuthService: Verifikasi - Token setelah disimpan & dibaca ulang: $storedToken');
+          print('AuthService: JWT token disimpan: $accessToken');
+        } else {
+          print(
+              'AuthService: Peringatan - access_token tidak ditemukan dalam respons login.');
+        }
+
         return LoginResponseModel.fromJson(responseData);
       } else {
         String errorMessage;
+        int? userIdFromError;
+        String? phoneNumberFromError;
+
         try {
           final Map<String, dynamic> errorData = json.decode(response.body);
           errorMessage = errorData['message'] ??
               'Terjadi kesalahan yang tidak diketahui dari server.';
+
+          // --- PENTING: Coba ambil userId dan phone dari respons error backend ---
+          userIdFromError = errorData['user_id'] as int?;
+          phoneNumberFromError = errorData['phone'] as String?;
+          // Pastikan backend Anda memang mengirimkan kunci 'user_id' dan 'phone' dalam respons error
+          // untuk status 403 atau lainnya.
+          // Jika tidak, nilai ini akan tetap null.
+          // ---------------------------------------------------------------------
         } catch (jsonError) {
           errorMessage =
               'Respons server tidak valid atau kosong (Status: ${response.statusCode}).';
@@ -175,20 +203,22 @@ class AuthService {
 
         print(
             'AuthService: Login gagal (Status: ${response.statusCode}): $errorMessage');
-        // --- DIAGNOSTIK BARU DI SINI ---
         print(
             'AuthService: Melempar AuthException dari blok ELSE (login status non-200): "$errorMessage"');
-        throw AuthException(errorMessage);
+
+        // Melempar AuthException dengan userId dan phoneNumber yang didapat dari error respons
+        throw AuthException(
+          errorMessage,
+          userId: userIdFromError,
+          phoneNumber: phoneNumberFromError,
+        );
       }
     } on http.ClientException catch (e) {
       print('AuthService: Error koneksi jaringan saat login: ${e.message}');
-      // --- DIAGNOSTIK BARU DI SINI ---
       print(
           'AuthService: Melempar AuthException dari blok CLIENT_EXCEPTION (login): "${e.message}"');
       throw AuthException(
           'Gagal terhubung ke server. Pastikan Anda terhubung ke internet dan server aktif. (${e.message})');
     }
-    // --- HAPUS BLOK CATCH UMUM DI SINI ---
-    // Pastikan tidak ada blok `catch (e)` terakhir di loginUser
   }
 }

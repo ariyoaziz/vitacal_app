@@ -3,7 +3,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:vitacal_app/services/auth_service.dart';
 import 'package:vitacal_app/models/user_model.dart';
-import 'package:vitacal_app/exceptions/auth_exception.dart';
+import 'package:vitacal_app/exceptions/auth_exception.dart'; // Pastikan ini diimpor
 import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -31,11 +31,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             'AuthBloc (Register): otpResponse.user.userId (setelah parsing): ${otpResponse.user.userId.runtimeType} - "${otpResponse.user.userId}"');
 
         emit(AuthRegisterSuccess(otpResponse,
-            userId: otpResponse.user.userId, // <--- User.userId sudah int
-            phoneNumber: event.phone));
+            userId: otpResponse.user.userId, phoneNumber: event.phone));
       } on AuthException catch (e) {
         print('AuthBloc: BERHASIL MENANGKAP AuthException: "${e.message}"');
-        emit(AuthError(e.message));
+        emit(AuthError(e.message,
+            userId: e.userId,
+            phoneNumber: e.phoneNumber)); // Meneruskan data dari AuthException
       } catch (e) {
         print('AuthBloc: ERROR TAK TERDUGA (Register - Catch Umum)!');
         print('Tipe exception yang sebenarnya: ${e.runtimeType}');
@@ -55,8 +56,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
         if (isVerified) {
           emit(AuthOtpVerified(User(
-              userId: event
-                  .userId, // <--- event.userId sudah int (dari VerifyOtpEvent)
+              userId: event.userId,
               username: 'Pengguna',
               email: '${event.phoneNumber}@example.com',
               phone: event.phoneNumber,
@@ -68,7 +68,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       } on AuthException catch (e) {
         print('AuthBloc: BERHASIL MENANGKAP AuthException: "${e.message}"');
-        emit(AuthError(e.message));
+        emit(AuthError(e.message,
+            userId: e.userId,
+            phoneNumber: e.phoneNumber)); // Meneruskan data dari AuthException
       } catch (e) {
         print('AuthBloc: ERROR TAK TERDUGA (Verify OTP - Catch Umum)!');
         print('Tipe exception yang sebenarnya: ${e.runtimeType}');
@@ -100,7 +102,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } on AuthException catch (e) {
         print(
             'AuthBloc: BERHASIL MENANGKAP AuthException (Login): "${e.message}"');
-        emit(AuthError(e.message));
+        // --- PENTING: Meneruskan userId dan phoneNumber dari AuthException ke AuthError state ---
+        emit(
+            AuthError(e.message, userId: e.userId, phoneNumber: e.phoneNumber));
+        // -------------------------------------------------------------------------------------
       } catch (e) {
         print('AuthBloc: ERROR TAK TERDUGA (Login - Catch Umum)!');
         print('Tipe exception yang sebenarnya: ${e.runtimeType}');
