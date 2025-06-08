@@ -113,4 +113,6 @@ class UserDetailModel {
       return null;
     }
   }
+
+  get targetBeratBadan => null;
 }

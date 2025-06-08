@@ -1,10 +1,11 @@
+// lib/widgets/custom_alert_dialog.dart
+
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
-// Enum untuk menentukan tipe dialog (sukses, peringatan, error)
 enum DialogType {
   success,
   warning,
@@ -31,36 +32,69 @@ class CustomAlertDialog extends StatefulWidget {
     this.autoDismissDuration,
   });
 
+  // --- MODIFIED: Change return type from 'void' to 'Future<void>' ---
+  static Future<void> show({
+    // <<< CHANGE THIS LINE
+    required BuildContext context,
+    String title = "Info Penting",
+    required String message,
+    String? buttonText,
+    VoidCallback? onButtonPressed,
+    DialogType type = DialogType.error,
+    bool showButton = true,
+    Duration? autoDismissDuration,
+  }) async {
+    // --- TAMBAHKAN BARIS INI ---
+    print('DEBUG DIALOG: CustomAlertDialog.show() dipanggil!');
+    print('DEBUG DIALOG: Pesan: "$message"');
+    print('DEBUG DIALOG: Stack Trace:');
+    print(StackTrace.current); // Cetak stack trace penuh
+    return showDialog<void>(
+      // <<< ENSURE showDialog returns void as well
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return CustomAlertDialog(
+          title: title,
+          message: message,
+          buttonText: buttonText,
+          onButtonPressed: onButtonPressed,
+          type: type,
+          showButton: showButton,
+          autoDismissDuration: autoDismissDuration,
+        );
+      },
+    );
+  }
+
   @override
   State<CustomAlertDialog> createState() => _CustomAlertDialogState();
 }
 
 class _CustomAlertDialogState extends State<CustomAlertDialog>
     with SingleTickerProviderStateMixin {
-  // <--- Tambahkan SingleTickerProviderStateMixin
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi AnimationController untuk ikon
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300), // Durasi animasi ikon
+      duration: const Duration(milliseconds: 300),
     );
     _scaleAnimation = CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutBack); // Efek memantul
+        parent: _animationController, curve: Curves.easeOutBack);
 
-    _animationController.forward(); // Mulai animasi ikon saat dialog muncul
+    _animationController.forward();
 
-    // Jika autoDismissDuration diatur dan tombol tidak ditampilkan, tutup otomatis
     if (widget.autoDismissDuration != null && !widget.showButton) {
       Future.delayed(widget.autoDismissDuration!, () {
         if (mounted) {
-          Navigator.of(context).pop();
-          widget.onButtonPressed?.call();
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+            widget.onButtonPressed?.call();
+          }
         }
       });
     }
@@ -68,14 +102,14 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
 
   @override
   void dispose() {
-    _animationController.dispose(); // Pastikan controller di-dispose
+    _animationController.dispose();
     super.dispose();
   }
 
   Color _getDialogColor() {
     switch (widget.type) {
       case DialogType.success:
-        return AppColors.primary; // Menggunakan primary untuk sukses
+        return AppColors.primary;
       case DialogType.warning:
         return Colors.orange;
       case DialogType.error:
@@ -181,18 +215,15 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
               ),
             ),
           ),
-          // Posisi untuk ikon di atas dialog
           Positioned(
             left: 16.0,
             right: 16.0,
             top: 0.0,
             child: ScaleTransition(
-              // <--- MODIFIKASI: Animasi ScaleTransition
-              scale: _scaleAnimation, // Gunakan animation controller
+              scale: _scaleAnimation,
               child: CircleAvatar(
                 backgroundColor: _getDialogColor(),
-                radius: 40.0, // Ukuran ikon (disesuaikan sedikit)
-                // --- Tambahkan shadow yang lebih jelas ke CircleAvatar ---
+                radius: 40.0,
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -210,7 +241,7 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
                     width: 50,
                     height: 50,
                     colorFilter: const ColorFilter.mode(
-                        AppColors.screen, BlendMode.srcIn), // Warna ikon
+                        AppColors.screen, BlendMode.srcIn),
                   ),
                 ),
               ),

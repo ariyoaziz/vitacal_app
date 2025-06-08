@@ -126,5 +126,75 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       print('AuthBloc: Logout berhasil. Token dihapus.');
       emit(AuthUnauthenticated());
     });
+    on<RequestPasswordResetEvent>((event, emit) async {
+      print('AuthBloc: Menerima RequestPasswordResetEvent');
+      emit(AuthLoading());
+      try {
+        // Jika requestPasswordReset berhasil, maka OTP dikirim dan navigasi
+        await authService.requestPasswordReset(phoneNumber: event.phoneNumber);
+        emit(AuthPasswordResetOtpSent(phoneNumber: event.phoneNumber));
+      } on AuthException catch (e) {
+        // --- Cukup tangkap AuthException dan emit pesan yang sudah bersih ---
+        print(
+            'AuthBloc: Menangkap AuthException. Pesan yang akan ditampilkan: "${e.message}"');
+        emit(AuthError(e.message, phoneNumber: e.phoneNumber));
+      } catch (e, stackTrace) {
+        // --- Ini hanya untuk error yang BUKAN AuthException ---
+        print(
+            'AuthBloc: ERROR TAK TERDUGA (Request Password Reset - Catch Umum)!');
+        print('    Tipe exception yang sebenarnya: ${e.runtimeType}');
+        print('    Pesan exception: $e');
+        print('    Stack Trace: $stackTrace');
+        emit(AuthError(
+            'Terjadi masalah tak terduga saat meminta reset password.'));
+      }
+    });
+
+    // lib/blocs/auth/auth_bloc.dart
+    on<VerifyResetOtpEvent>((event, emit) async {
+      print('AuthBloc: Menerima VerifyResetOtpEvent');
+      emit(AuthLoading());
+      try {
+        final isVerified = await authService.verifyResetPasswordOtp(
+          // <--- PANGGIL METODE BARU
+          otpCode: event.otpCode,
+          phoneNumber: event.phoneNumber,
+        );
+
+        if (isVerified) {
+          emit(AuthPasswordResetOtpVerified(
+              phoneNumber: event.phoneNumber, otpCode: event.otpCode));
+        } else {
+          emit(const AuthError(
+              'Verifikasi OTP reset gagal. Kode tidak sesuai.'));
+        }
+      } on AuthException catch (e) {
+        print(
+            'AuthBloc: BERHASIL MENANGKAP AuthException (Verify Reset OTP)!: "${e.message}"');
+        emit(AuthError(e.message, phoneNumber: e.phoneNumber));
+      } catch (e) {
+        print('AuthBloc: ERROR TAK TERDUGA (Verify Reset OTP - Catch Umum)!');
+        print('Tipe exception yang sebenarnya: ${e.runtimeType}');
+        print('Pesan exception: $e');
+        emit(AuthError(
+            'Terjadi masalah tak terduga saat verifikasi OTP reset.'));
+      }
+    });
+
+    on<ResetPasswordEvent>((event, emit) async {
+      emit(AuthLoading());
+      try {
+        await authService.resetPassword(
+          phoneNumber: event.phoneNumber,
+          otpCode: event.otpCode,
+          newPassword: event.newPassword,
+        );
+        emit(const AuthPasswordResetSuccess('Password berhasil diubah!'));
+      } on AuthException catch (e) {
+        emit(AuthError(e.message, phoneNumber: e.phoneNumber));
+      } catch (e) {
+        emit(AuthError('Terjadi masalah tak terduga saat reset password.'));
+      }
+    });
   }
 }

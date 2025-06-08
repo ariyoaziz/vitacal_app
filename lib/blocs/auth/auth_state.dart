@@ -75,3 +75,32 @@ class AuthAuthenticated extends AuthState {
 }
 
 class AuthUnauthenticated extends AuthState {}
+
+class AuthPasswordResetOtpSent extends AuthState {
+  final String phoneNumber; // Simpan nomor telepon untuk diteruskan
+  const AuthPasswordResetOtpSent({required this.phoneNumber});
+
+  @override
+  List<Object?> get props => [phoneNumber];
+}
+
+// State ini dikeluarkan ketika password berhasil direset
+class AuthPasswordResetSuccess extends AuthState {
+  final String message;
+  const AuthPasswordResetSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+// lib/blocs/auth/auth_state.dart
+class AuthPasswordResetOtpVerified extends AuthState {
+  final String phoneNumber;
+  final String otpCode; // <-- Tambahkan ini
+
+  const AuthPasswordResetOtpVerified(
+      {required this.phoneNumber, required this.otpCode});
+
+  @override
+  List<Object?> get props => [phoneNumber, otpCode];
+}

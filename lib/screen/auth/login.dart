@@ -11,10 +11,8 @@ import 'package:vitacal_app/screen/auth/otp/otp_registrasi.dart';
 import 'package:vitacal_app/screen/auth/registrasi.dart';
 import 'package:vitacal_app/screen/detail_user_input/detailuser_input_nama.dart';
 import 'package:vitacal_app/screen/widgets/costum_dialog.dart';
-
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:flutter/gestures.dart';
-
 import 'package:vitacal_app/screen/main_page.dart';
 
 class Login extends StatefulWidget {
@@ -30,7 +28,7 @@ class _LoginState extends State<Login> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  bool _isDialogShowing = false; // Flag untuk mencegah duplikasi dialog
+  bool _isDialogShowing = false;
 
   @override
   void dispose() {
@@ -40,7 +38,10 @@ class _LoginState extends State<Login> {
   }
 
   void _onLoginPressed() {
+    // Pastikan validasi form berjalan
     if (_formKey.currentState!.validate()) {
+      // Pastikan keyboard ditutup
+      FocusScope.of(context).unfocus();
       context.read<AuthBloc>().add(
             LoginUserEvent(
               identifier: _identifierController.text.trim(),
@@ -80,16 +81,14 @@ class _LoginState extends State<Login> {
                     });
                   }
 
-                  // Mencegah duplikasi dialog
                   if (_isDialogShowing) {
-                    return;
+                    return; // Jika dialog sudah tampil, jangan tampilkan lagi
                   }
 
-                  // Penanganan state login berhasil
                   if (state is AuthLoginSuccess) {
                     setState(() {
                       _isDialogShowing = true;
-                    });
+                    }); // Set flag sebelum navigasi
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -101,140 +100,145 @@ class _LoginState extends State<Login> {
                       if (mounted) {
                         setState(() {
                           _isDialogShowing = false;
-                        });
+                        }); // Reset flag
                       }
                     });
                   }
                   // Penanganan state error login
                   else if (state is AuthError) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    _isDialogShowing = true;
-                    setState(() {});
+                    // _isDialogShowing = true; // Tidak perlu, karena CustomAlertDialog.show akan menangani
 
-                    String dialogTitle = "Login Gagal!";
-                    String dialogMessage = state.message;
-                    DialogType dialogType = DialogType.error;
+                    String dialogTitle;
+                    String dialogMessage;
+                    DialogType dialogType;
+                    VoidCallback?
+                        onOkPressedCallback; // Callback untuk tombol "Oke"
 
-                    bool navigateToOtpRegistrasi = false;
-                    bool navigateToProfileCompletion = false;
+                    // Ambil pesan asli dari state
+                    final rawMessage =
+                        state.message.trim(); // Ambil pesan mentah dari state
+                    String cleanedMessage =
+                        rawMessage; // Inisialisasi dengan pesan mentah
 
-                    // Ambil userId dan phoneNumber langsung dari AuthError state
-                    final int? userIdFromState = state.userId;
-                    final String? phoneNumberFromState = state.phoneNumber;
+                    if (rawMessage.contains(
+                        "Terjadi masalah tak terduga: AuthException:")) {
+                      // Cari indeks pertama dari "AuthException:"
+                      final startIndex = rawMessage.indexOf("AuthException:");
+                      if (startIndex != -1) {
+                        // Ambil bagian setelah "AuthException: " dan bersihkan spasi
+                        cleanedMessage = rawMessage
+                            .substring(startIndex + "AuthException:".length)
+                            .trim();
+                        // Kemudian, jika ada "(Phone: ...)" atau "(User ID: ...)", hapus juga
+                        final phoneIndex = cleanedMessage.indexOf(" (Phone:");
+                        final userIdIndex =
+                            cleanedMessage.indexOf(" (User ID:");
 
-                    final cleanMessage = state.message.trim();
+                        if (phoneIndex != -1) {
+                          cleanedMessage =
+                              cleanedMessage.substring(0, phoneIndex).trim();
+                        } else if (userIdIndex != -1) {
+                          cleanedMessage =
+                              cleanedMessage.substring(0, userIdIndex).trim();
+                        }
+                      }
+                    }
 
-                    if (cleanMessage.contains("User tidak ditemukan")) {
+                    // --- Gunakan cleanedMessage untuk menentukan dialogTitle dan dialogMessage ---
+                    // Ini adalah bagian di mana kita mapping pesan dari backend ke pesan yang lebih user-friendly
+                    if (cleanedMessage
+                            .contains("Nomor telepon tidak terdaftar") ||
+                        cleanedMessage.contains("User tidak ditemukan")) {
                       dialogTitle = "Akun Tidak Ditemukan!";
                       dialogMessage =
                           "Username, email, atau nomor telepon tidak terdaftar.";
                       dialogType = DialogType.error;
-                    } else if (cleanMessage.contains("Password salah")) {
+                    } else if (cleanedMessage.contains("Password salah")) {
                       dialogTitle = "Password Salah!";
                       dialogMessage =
                           "Password yang kamu masukkan tidak cocok. Coba lagi ya!";
                       dialogType = DialogType.error;
-                    } else if (cleanMessage
+                    } else if (cleanedMessage
                         .contains("Akun belum diverifikasi")) {
                       dialogTitle = "Akun Belum Diverifikasi!";
                       dialogMessage =
                           "Akunmu belum diverifikasi. Mohon cek OTP di WhatsApp untuk verifikasi.";
                       dialogType = DialogType.warning;
-                      navigateToOtpRegistrasi = true;
-                      // userIdFromState dan phoneNumberFromState sudah diambil dari state
-                    } else if (cleanMessage
+                      onOkPressedCallback = () {
+                        if (state.userId != null && state.phoneNumber != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => OtpRegistrasi(
+                                userId: state.userId!,
+                                phoneNumber: state.phoneNumber!,
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Data verifikasi tidak lengkap. Silakan coba login lagi.')),
+                          );
+                        }
+                      };
+                    } else if (cleanedMessage
                         .contains("Profil Anda belum lengkap")) {
                       dialogTitle = "Lengkapi Profil Anda!";
                       dialogMessage =
                           "Profil Anda belum lengkap. Mohon lengkapi data diri Anda untuk dapat login.";
                       dialogType = DialogType.warning;
-                      navigateToProfileCompletion = true;
-                    } else if (cleanMessage
+                      onOkPressedCallback = () {
+                        if (state.userId != null) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetailuserInputNama(
+                                userId: state.userId!,
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Data pengguna tidak lengkap. Silakan coba login lagi.')),
+                          );
+                        }
+                      };
+                    } else if (cleanedMessage
                         .contains("Gagal terhubung ke server")) {
                       dialogTitle = "Jaringanmu Bermasalah?";
                       dialogMessage =
                           "Gagal terhubung ke server. Pastikan koneksi internetmu stabil dan coba lagi ya!";
                       dialogType = DialogType.error;
-                    } else if (cleanMessage.contains("wajib diisi")) {
+                    } else if (cleanedMessage.contains("wajib diisi")) {
                       dialogTitle = "Input Belum Lengkap!";
                       dialogMessage = "Mohon isi identifier dan password ya!";
                       dialogType = DialogType.warning;
-                    } else {
+                    }
+                    // --- INI ADALAH FALLBACK TERAKHIR UNTUK PESAN YANG TIDAK DIKENALI ---
+                    // Jika pesan tetap tidak cocok dengan kondisi di atas, gunakan pesan asli dari backend
+                    else {
                       dialogTitle = "Ada Error Nih!";
                       dialogMessage =
-                          "Terjadi masalah tak terduga. Mohon coba lagi nanti ya!";
+                          cleanedMessage; // Gunakan pesan yang sudah dibersihkan sebagai default
                       dialogType = DialogType.error;
                     }
 
-                    // Menampilkan CustomAlertDialog
-                    await showDialog(
+                    // Menampilkan CustomAlertDialog menggunakan static method show()
+                    CustomAlertDialog.show(
                       context: context,
-                      barrierDismissible: false,
-                      builder: (BuildContext dialogContext) {
-                        return CustomAlertDialog(
-                          title: dialogTitle,
-                          message: dialogMessage,
-                          buttonText: "Oke",
-                          type: dialogType,
-                          showButton: true,
-                        );
-                      },
+                      title: dialogTitle,
+                      message:
+                          dialogMessage, // Gunakan pesan yang sudah diproses atau pesan asli
+                      buttonText: "Oke",
+                      type: dialogType,
+                      showButton: true,
+                      onButtonPressed: onOkPressedCallback,
                     );
-
-                    // Reset flag setelah dialog ditutup
-                    if (mounted) {
-                      setState(() {
-                        _isDialogShowing = false;
-                      });
-                    }
-
-                    // --- Logika navigasi setelah dialog ditutup ---
-                    if (navigateToOtpRegistrasi) {
-                      // Pastikan userId dan phoneNumber tidak null sebelum navigasi
-                      if (userIdFromState != null &&
-                          phoneNumberFromState != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => OtpRegistrasi(
-                              userId:
-                                  userIdFromState, // Menggunakan userId dari AuthError state
-                              phoneNumber:
-                                  phoneNumberFromState, // Menggunakan phoneNumber dari AuthError state
-                            ),
-                          ),
-                        );
-                      } else {
-                        // Tampilkan SnackBar jika informasi tidak lengkap (misal: backend tidak mengirimkan data ini)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  "Tidak dapat melanjutkan verifikasi. Informasi pengguna tidak lengkap atau backend tidak menyediakan data.")),
-                        );
-                      }
-                    } else if (navigateToProfileCompletion) {
-                      // --- PERBAIKAN: Navigasi ke DetailuserInputNama ---
-                      // Pastikan userIdFromState tidak null sebelum navigasi
-                      if (userIdFromState != null) {
-                        Navigator.pushReplacement(
-                          // Menggunakan pushReplacement sesuai permintaan
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailuserInputNama(
-                              userId:
-                                  userIdFromState, // Meneruskan userId dari AuthError state
-                            ),
-                          ),
-                        );
-                      } else {
-                        // Jika userId tidak tersedia dan UserDetailScreen memerlukannya
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  "Tidak dapat melanjutkan ke lengkapi profil. Informasi user ID tidak tersedia.")),
-                        );
-                      }
-                    }
                   }
                 },
                 child: LayoutBuilder(
@@ -380,7 +384,9 @@ class _LoginState extends State<Login> {
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
                                   onPressed: () {
-                                    Navigator.push(
+                                    // --- PERBAIKAN DI SINI: Gunakan pushReplacement ---
+                                    Navigator.pushReplacement(
+                                      // <<< Ganti push() menjadi pushReplacement()
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
@@ -416,14 +422,20 @@ class _LoginState extends State<Login> {
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 14),
                                     ),
-                                    child: const Text(
-                                      "Login",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                    child: _isLoading
+                                        ? CircularProgressIndicator(
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                          )
+                                        : const Text(
+                                            "Login",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ),
@@ -449,8 +461,9 @@ class _LoginState extends State<Login> {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                                builder: (context) =>
-                                                    const Registrasi()),
+                                              builder: (context) =>
+                                                  const Registrasi(),
+                                            ),
                                           );
                                         },
                                     ),

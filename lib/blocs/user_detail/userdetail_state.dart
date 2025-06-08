@@ -31,3 +31,4 @@ class UserDetailError extends UserDetailState {
   @override
   List<Object> get props => [message];
 }
+

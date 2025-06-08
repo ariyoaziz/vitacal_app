@@ -1,60 +1,51 @@
-// lib/services/calorie_service.dart
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart'; // Untuk mendapatkan JWT token
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:vitacal_app/models/kalori_model.dart'; // Menggunakan kalori_model.dart
-import 'package:vitacal_app/exceptions/api_exception.dart'; // Menggunakan api_exception.dart
+import 'package:vitacal_app/models/kalori_model.dart';
+import 'package:vitacal_app/exceptions/auth_exception.dart';
+import 'package:vitacal_app/services/constatans.dart'; // <<< Gunakan AuthException
 
 class CalorieService {
-  // PENTING: Ganti dengan IP atau domain backend Flask Anda yang sebenarnya
-  // Untuk Android Emulator: 'http://10.0.2.2:5000'
-  // Untuk iOS Simulator: 'http://127.0.0.1:5000'
-  // Untuk Perangkat Fisik: 'http://YOUR_LOCAL_IP:5000'
-  final String _baseUrl =
-      'http://192.168.241.211:5000'; // Menggunakan IP dari contoh AuthService Anda
+  final String _baseUrl = AppConstants.baseUrl;
+
+  // Helper untuk mendapatkan User ID dari SharedPreferences
+  Future<int?> _getUserIdFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id'); // Asumsi user ID disimpan sebagai int
+  }
 
   // Helper generik untuk membuat permintaan API yang terautentikasi
-  Future<Map<String, dynamic>?> _sendAuthenticatedRequest(
+  // Mengembalikan Map<String, dynamic> dari respons JSON
+  Future<Map<String, dynamic>> _sendAuthenticatedRequest(
     String endpoint, {
     String method = 'GET',
     Map<String, dynamic>? body,
   }) async {
     final url = Uri.parse('$_baseUrl/$endpoint');
     final prefs = await SharedPreferences.getInstance();
-    final token =
-        prefs.getString('jwt_token'); // Dapatkan JWT token yang tersimpan
-
-    // --- DIAGNOSTIK BARU: LOG NILAI TOKEN ---
-    print(
-        'CalorieService: Token yang diambil dari SharedPreferences: $token (untuk endpoint $endpoint)');
-    // ----------------------------------------
+    final token = prefs.getString('jwt_token');
 
     if (token == null) {
-      print(
-          'CalorieService: Error - JWT token not found for authenticated request to $endpoint.');
-      throw ApiException('Anda belum login. Silakan login kembali.');
+      throw AuthException('Anda belum login. Silakan login kembali.');
     }
 
     final headers = <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
-      'Authorization': 'Bearer $token', // Lampirkan JWT token
+      'Authorization': 'Bearer $token',
     };
 
     http.Response response;
 
     try {
-      print('CalorieService: Mengirim permintaan $method ke $url');
-      print('CalorieService: Headers: $headers');
-      if (body != null) {
-        print('CalorieService: Body: ${jsonEncode(body)}');
-      }
-
       switch (method) {
         case 'POST':
           response =
               await http.post(url, headers: headers, body: jsonEncode(body));
+          break;
+        case 'PUT':
+          response =
+              await http.put(url, headers: headers, body: jsonEncode(body));
           break;
         case 'DELETE':
           response = await http.delete(url, headers: headers);
@@ -65,12 +56,12 @@ class CalorieService {
           break;
       }
 
-      print(
-          'CalorieService: Status Respons untuk $endpoint: ${response.statusCode}');
-      print('CalorieService: Body Respons untuk $endpoint: ${response.body}');
-
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return json.decode(response.body);
+        // Cek jika body respons kosong atau bukan JSON sebelum decode
+        if (response.body.isEmpty) {
+          return {}; // Mengembalikan map kosong jika body kosong
+        }
+        return json.decode(response.body) as Map<String, dynamic>;
       } else {
         String errorMessage;
         try {
@@ -80,21 +71,14 @@ class CalorieService {
         } catch (jsonError) {
           errorMessage =
               'Respons server tidak valid atau kosong (Status: ${response.statusCode}).';
-          print(
-              'CalorieService: Error mendekode JSON untuk $endpoint: $jsonError');
         }
-        print(
-            'CalorieService: Error API untuk $endpoint: $errorMessage (Status: ${response.statusCode})');
-        throw ApiException(errorMessage,
-            statusCode: response.statusCode); // Tambahkan status code
+        throw AuthException(errorMessage); // <<< Gunakan AuthException
       }
     } on http.ClientException catch (e) {
-      print('CalorieService: Error jaringan untuk $endpoint: ${e.message}');
-      throw ApiException(
+      throw AuthException(
           'Gagal terhubung ke server. Pastikan koneksi internet Anda aktif. (${e.message})');
     } catch (e) {
-      print('CalorieService: Error tidak terduga untuk $endpoint: $e');
-      throw ApiException('Terjadi kesalahan tidak terduga: $e');
+      throw AuthException('Terjadi kesalahan tidak terduga: ${e.toString()}');
     }
   }
 
@@ -103,19 +87,17 @@ class CalorieService {
     try {
       final responseData =
           await _sendAuthenticatedRequest('hitung-kalori', method: 'GET');
-      if (responseData != null && responseData['data'] != null) {
-        print('CalorieService: Berhasil mengambil data kalori.');
+      // Periksa 'data' di dalam responseData, bukan responseData itu sendiri yang null
+      if (responseData['data'] != null) {
         return KaloriModel.fromJson(
-            responseData['data']); // Menggunakan KaloriModel
+            responseData['data'] as Map<String, dynamic>);
       } else {
-        print(
-            'CalorieService: Tidak ada data ditemukan dalam respons rekomendasi kalori.');
-        throw ApiException(
+        throw AuthException(
             'Data profil belum lengkap atau rekomendasi kalori tidak ditemukan.');
       }
     } catch (e) {
-      print('CalorieService: Error di fetchCalorieRecommendation: $e');
-      rethrow; // Melemparkan kembali ApiException dari _sendAuthenticatedRequest
+      // AuthException sudah cukup spesifik, tidak perlu rethrow
+      rethrow; // Melemparkan kembali exception yang ada
     }
   }
 
@@ -124,17 +106,45 @@ class CalorieService {
     try {
       final responseData =
           await _sendAuthenticatedRequest('delete-kalori', method: 'DELETE');
-      if (responseData != null && responseData['message'] != null) {
-        print('CalorieService: Berhasil menghapus rekomendasi kalori.');
+      if (responseData['message'] != null) {
         return responseData['message'] as String;
       } else {
-        print(
-            'CalorieService: Tidak ada pesan sukses ditemukan dalam respons penghapusan rekomendasi kalori.');
-        throw ApiException('Gagal menghapus rekomendasi kalori.');
+        throw AuthException(
+            'Tidak ada pesan sukses ditemukan dalam respons penghapusan rekomendasi kalori.');
       }
     } catch (e) {
-      print('CalorieService: Error di deleteCalorieRecommendation: $e');
-      rethrow; // Melemparkan kembali ApiException dari _sendAuthenticatedRequest
+      rethrow; // Melemparkan kembali exception yang ada
     }
+  }
+
+  // --- NEW METHOD: Get Daily Calorie Summary for Analytics Page ---
+  Future<Map<String, dynamic>> getDailyCalorieSummary() async {
+    final userId = await _getUserIdFromPrefs();
+    if (userId == null) {
+      throw AuthException('User ID tidak ditemukan. Mohon login ulang.');
+    }
+    // Asumsi endpoint backend untuk ringkasan kalori adalah /calories/summary/<user_id>
+    final responseData = await _sendAuthenticatedRequest(
+        'calories/summary/$userId',
+        method: 'GET');
+    // Jika responsnya adalah Map langsung, Anda bisa mengembalikan langsung
+    return responseData;
+  }
+
+  // --- NEW METHOD: Get Weight History for Analytics Page ---
+  Future<List<Map<String, dynamic>>> getWeightHistory() async {
+    final userId = await _getUserIdFromPrefs();
+    if (userId == null) {
+      throw AuthException('User ID tidak ditemukan. Mohon login ulang.');
+    }
+    // Asumsi endpoint backend untuk riwayat berat adalah /weight-history/<user_id>
+    final responseData = await _sendAuthenticatedRequest(
+        'weight-history/$userId',
+        method: 'GET');
+    // Asumsi respons adalah Map dengan kunci 'history' yang berisi List
+    if (responseData['history'] is List) {
+      return List<Map<String, dynamic>>.from(responseData['history'] as List);
+    }
+    return []; // Mengembalikan list kosong jika tidak ada data history
   }
 }

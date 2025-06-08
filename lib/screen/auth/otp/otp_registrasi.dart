@@ -141,9 +141,7 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
                       'OTPRegistrasi: Nilai state.user.userId: "${state.user.userId}"');
 
                   int parsedUserId;
-                  // PERBAIKAN: Gunakan int.tryParse() pada state.user.userId
-                  // dan pastikan ada fallback yang aman jika itu "null" atau string tidak valid.
-                  // Default ke 0 jika gagal parse
+
                   parsedUserId =
                       int.tryParse(state.user.userId.toString()) ?? 0;
                   // Tambahkan validasi jika 0 tidak valid untuk user_id Anda
@@ -151,7 +149,6 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
                       // ignore: unnecessary_null_comparison
                       (state.user.userId == null ||
                           state.user.userId.toString() == "null")) {
-                    // Jika userId benar-benar null/tidak valid dan jadi 0, ini adalah masalah data
                     showDialog(
                       context: context,
                       barrierDismissible: false,

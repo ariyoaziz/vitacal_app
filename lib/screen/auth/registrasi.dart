@@ -32,8 +32,7 @@ class _RegistrasiState extends State<Registrasi> {
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-  bool _isLoading =
-      false; // Variabel untuk mengontrol visibilitas loading overlay
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -148,8 +147,8 @@ class _RegistrasiState extends State<Registrasi> {
                               context,
                               MaterialPageRoute(
                                   builder: (context) => DetailuserInputNama(
-                                      userId: int.parse(state.user
-                                          .userId as String))), // Gunakan state.user.userId
+                                      userId: int.parse(state.user.userId
+                                          as String))), // Gunakan state.user.userId
                             );
                           },
                         );

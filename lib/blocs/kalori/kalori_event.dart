@@ -10,7 +10,7 @@ abstract class KaloriEvent extends Equatable {
   List<Object> get props => [];
 }
 
-// Event untuk meminta pengambilan data rekomendasi kalori.
+// Event untuk meminta pengambilan data rekomendasi kalori (existing).
 class FetchKaloriData extends KaloriEvent {
   const FetchKaloriData();
 
@@ -18,9 +18,27 @@ class FetchKaloriData extends KaloriEvent {
   List<Object> get props => [];
 }
 
-// Event untuk meminta penghapusan data rekomendasi kalori.
+// Event untuk meminta penghapusan data rekomendasi kalori (existing).
 class DeleteKaloriData extends KaloriEvent {
   const DeleteKaloriData();
+
+  @override
+  List<Object> get props => [];
+}
+
+// --- NEW EVENTS FOR ANALYTICS PAGE ---
+
+// Event untuk meminta pemuatan data ringkasan kalori harian.
+class LoadDailyCalorieData extends KaloriEvent {
+  const LoadDailyCalorieData();
+
+  @override
+  List<Object> get props => [];
+}
+
+// Event untuk meminta pemuatan data riwayat berat badan untuk grafik.
+class LoadWeightGraphData extends KaloriEvent {
+  const LoadWeightGraphData();
 
   @override
   List<Object> get props => [];

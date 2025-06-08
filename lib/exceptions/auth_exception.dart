@@ -1,14 +1,32 @@
-// lib/exceptions/auth_exception.dart
+class ApiException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  ApiException(this.message, {this.statusCode});
+
+  @override
+  String toString() {
+    return 'ApiException: $message${statusCode != null ? ' (Status: $statusCode)' : ''}';
+  }
+}
 
 class AuthException implements Exception {
   final String message;
-  final int? userId; // <--- TAMBAHKAN INI
-  final String? phoneNumber; // <--- TAMBAHKAN INI
+  final int? userId;
+  final String? phoneNumber;
 
-  AuthException(this.message,
-      {this.userId, this.phoneNumber}); // <--- SESUAIKAN CONSTRUCTOR
+  // Pastikan HANYA constructor ini yang ada:
+  const AuthException(this.message, {this.userId, this.phoneNumber});
 
   @override
-  String toString() =>
-      'AuthException: $message' + (userId != null ? ' (User ID: $userId)' : '');
+  String toString() {
+    String details = '';
+    if (userId != null) {
+      details += ' (User ID: $userId)';
+    }
+    if (phoneNumber != null) {
+      details += ' (Phone: $phoneNumber)';
+    }
+    return 'AuthException: $message$details'; // Output toString() akan seperti ini
+  }
 }

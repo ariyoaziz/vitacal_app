@@ -55,3 +55,40 @@ class LoginUserEvent extends AuthEvent {
 }
 
 class LogoutUserEvent extends AuthEvent {}
+
+class RequestPasswordResetEvent extends AuthEvent {
+  final String phoneNumber;
+
+  const RequestPasswordResetEvent({required this.phoneNumber});
+
+  @override
+  List<Object> get props => [phoneNumber];
+}
+
+class ResetPasswordEvent extends AuthEvent {
+  final String phoneNumber;
+  final String otpCode;
+  final String newPassword;
+
+  const ResetPasswordEvent({
+    required this.phoneNumber,
+    required this.otpCode,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object> get props => [phoneNumber, otpCode, newPassword];
+}
+
+class VerifyResetOtpEvent extends AuthEvent {
+  final String otpCode;
+  final String phoneNumber;
+
+  const VerifyResetOtpEvent({
+    required this.otpCode,
+    required this.phoneNumber,
+  });
+
+  @override
+  List<Object> get props => [otpCode, phoneNumber];
+}
