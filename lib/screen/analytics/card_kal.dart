@@ -1,21 +1,90 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:vitacal_app/themes/colors.dart';
+import 'package:intl/intl.dart'; // Untuk memformat tanggal
+import 'package:intl/date_symbol_data_local.dart'; // Untuk inisialisasi data lokal
 
-class KaloriChartCard extends StatefulWidget {
-  const KaloriChartCard({super.key});
+/// Widget untuk menampilkan grafik kalori harian.
+/// Menerima data kalori melalui properti 'data'.
+class KaloriChartCard extends StatelessWidget {
+  // Data kalori yang akan ditampilkan pada grafik.
+  // Diharapkan berupa List of Map dengan format:
+  // [{"date": "YYYY-MM-DD", "calories": VALUE_KALORI}]
+  final List<Map<String, dynamic>> data;
 
-  @override
-  State<KaloriChartCard> createState() => _KaloriChartCardState();
-}
-
-class _KaloriChartCardState extends State<KaloriChartCard> {
-  final List<double> kalori = [1900, 2100, 1500, 1650, 2300, 1700, 2200];
-  final List<String> hari = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-  String selectedDay = 'Sen';
+  const KaloriChartCard({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
+    // Pastikan data lokal diinisialisasi untuk format hari
+    // Ini biasanya dilakukan di main.dart, tapi aman di sini juga
+    // if (!Intl.defaultLocale?.startsWith('id') ?? true) { // Hanya inisialisasi jika belum
+    initializeDateFormatting('id_ID', null);
+    // }
+
+    // Ambil hanya 7 hari pertama dari data untuk tampilan mingguan
+    final List<Map<String, dynamic>> weeklyData = data.take(7).toList();
+
+    // Memastikan ada data untuk ditampilkan, jika tidak, tampilkan placeholder.
+    if (weeklyData.isEmpty) {
+      // Cek weeklyData yang sudah difilter
+      return Card(
+        color: AppColors.screen,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 1,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 24),
+              Container(
+                height: 200,
+                alignment: Alignment.center,
+                child: Text(
+                  'Tidak ada data kalori mingguan tersedia.',
+                  style: TextStyle(color: AppColors.darkGrey),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Mengonversi weeklyData menjadi BarChartGroupData
+    final List<BarChartGroupData> barGroups =
+        List.generate(weeklyData.length, (index) {
+      final item = weeklyData[index];
+      final double calories = (item['calories'] as num).toDouble();
+      final Color barColor = AppColors.primary;
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: calories,
+            width: 18,
+            borderRadius: BorderRadius.circular(6),
+            gradient: LinearGradient(
+              colors: [barColor.withOpacity(0.8), barColor],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+            ),
+          ),
+        ],
+        showingTooltipIndicators: [],
+      );
+    });
+
+    // Menentukan nilai maksimal Y untuk grafik dari weeklyData
+    double maxY = weeklyData
+            .map((e) => (e['calories'] as num).toDouble())
+            .reduce((value, element) => value > element ? value : element) +
+        500;
+
     return Card(
       color: AppColors.screen,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -25,65 +94,8 @@ class _KaloriChartCardState extends State<KaloriChartCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: [
-                const Icon(Icons.local_fire_department,
-                    color: Colors.orange, size: 28),
-                const SizedBox(width: 10),
-                const Text(
-                  'Kalori Harian',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightgreen,
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('Hari ',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500)),
-                      DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: selectedDay,
-                          onChanged: (newValue) {
-                            if (newValue != null) {
-                              setState(() => selectedDay = newValue);
-                            }
-                          },
-                          icon: Icon(Icons.keyboard_arrow_down,
-                              size: 20, color: Colors.black87),
-                          dropdownColor: AppColors.screen,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          borderRadius: BorderRadius.circular(11),
-                          items: hari.map((value) {
-                            return DropdownMenuItem(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            _buildHeader(),
             const SizedBox(height: 24),
-
             // Bar Chart
             AspectRatio(
               aspectRatio: 1.1,
@@ -114,7 +126,7 @@ class _KaloriChartCardState extends State<KaloriChartCard> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 40,
-                        interval: 500,
+                        interval: 500, // Interval pada sumbu Y
                         getTitlesWidget: (value, _) => Text(
                           '${value.toInt()}',
                           style: const TextStyle(fontSize: 12),
@@ -126,11 +138,19 @@ class _KaloriChartCardState extends State<KaloriChartCard> {
                         showTitles: true,
                         getTitlesWidget: (value, _) {
                           final index = value.toInt();
-                          if (index >= 0 && index < hari.length) {
+                          if (index >= 0 && index < weeklyData.length) {
+                            final dateString =
+                                weeklyData[index]['date'] as String;
+                            final dateTime = DateTime.parse(dateString);
                             return Padding(
                               padding: const EdgeInsets.only(top: 8),
-                              child: Text(hari[index],
-                                  style: const TextStyle(fontSize: 12)),
+                              child: Text(
+                                // --- PERBAIKAN: Format hari menggunakan locale 'id_ID' ---
+                                DateFormat('EE', 'id_ID').format(
+                                    dateTime), // Output: Sen, Sel, Rab, dst.
+                                // --- AKHIR PERBAIKAN ---
+                                style: const TextStyle(fontSize: 12),
+                              ),
                             );
                           }
                           return const SizedBox();
@@ -144,32 +164,22 @@ class _KaloriChartCardState extends State<KaloriChartCard> {
                   ),
                   gridData: FlGridData(show: false),
                   borderData: FlBorderData(show: false),
-                  maxY: 3500,
-                  barGroups: List.generate(kalori.length, (index) {
-                    final isSelected = hari[index] == selectedDay;
-                    return BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                          toY: kalori[index],
-                          width: 18,
-                          borderRadius: BorderRadius.circular(6),
-                          gradient: LinearGradient(
-                            colors: isSelected
-                                ? [AppColors.primary, AppColors.primary]
-                                : [AppColors.lightgreen, AppColors.lightgreen],
-                          ),
-                        ),
-                      ],
-                      showingTooltipIndicators: isSelected ? [0] : [],
-                    );
-                  }),
+                  maxY: maxY,
+                  barGroups: barGroups,
                   extraLinesData: ExtraLinesData(horizontalLines: [
                     HorizontalLine(
                       y: 2000,
                       color: Colors.grey.shade500,
                       strokeWidth: 1,
                       dashArray: [4, 4],
+                      label: HorizontalLineLabel(
+                        show: true,
+                        alignment: Alignment.topRight,
+                        padding: const EdgeInsets.only(right: 5, bottom: 5),
+                        style: TextStyle(
+                            color: Colors.grey.shade500, fontSize: 10),
+                        labelResolver: (line) => 'Target: ${line.y.toInt()}',
+                      ),
                     ),
                   ]),
                 ),
@@ -178,6 +188,24 @@ class _KaloriChartCardState extends State<KaloriChartCard> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        const Icon(Icons.local_fire_department, color: Colors.orange, size: 28),
+        const SizedBox(width: 10),
+        const Text(
+          'Kalori Harian',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const Spacer(),
+      ],
     );
   }
 }

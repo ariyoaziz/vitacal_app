@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vitacal_app/models/otp_model.dart';
 import 'package:vitacal_app/exceptions/auth_exception.dart';
 import 'package:vitacal_app/models/login_respon_model.dart';
-import 'package:vitacal_app/services/constatans.dart';
+import 'package:vitacal_app/services/constants.dart';
 
 class AuthService {
   final String _baseUrl = AppConstants.baseUrl;

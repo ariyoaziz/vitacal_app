@@ -1,3 +1,5 @@
+// ignore_for_file: curly_braces_in_flow_control_structures
+
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:vitacal_app/themes/colors.dart';
@@ -7,25 +9,44 @@ class BmiCard extends StatelessWidget {
 
   const BmiCard({super.key, required this.bmi});
 
+  // --- Fungsi getBmiStatus agar SAMA PERSIS dengan backend Flask ---
   String getBmiStatus(double bmi) {
-    if (bmi < 16.0) return 'Sangat Kurus';
-    if (bmi < 18.5) return 'Kurus';
-    if (bmi < 25.0) return 'Normal';
-    if (bmi < 30.0) return 'Berlebih';
-    return 'Obesitas';
+    if (bmi < 18.5)
+      return "Berat badan kurang";
+    else if (bmi <= 24.9)
+      return "Berat badan normal";
+    else if (bmi <= 29.9)
+      return "Pre-obesitas";
+    else if (bmi <= 34.9)
+      return "Obesitas kelas I";
+    else if (bmi <= 39.9)
+      return "Obesitas kelas II";
+    else
+      return "Obesitas kelas III"; // bmi >= 40.0
   }
 
+  // --- Fungsi getBmiColor agar sesuai dengan 6 status di atas ---
+  // Menggunakan gradasi warna untuk obesitas
   Color getBmiColor(double bmi) {
-    if (bmi < 16.0) return Colors.orange.shade700;
-    if (bmi < 18.5) return Colors.yellow.shade700;
-    if (bmi < 25.0) return Colors.green;
-    if (bmi < 30.0) return Colors.orange;
-    return Colors.red;
+    if (bmi < 18.5) {
+      return Colors.orange.shade700; // Untuk "Berat badan kurang"
+    } else if (bmi <= 24.9) {
+      return Colors.green; // Untuk "Berat badan normal"
+    } else if (bmi <= 29.9) {
+      return Colors.orange; // Untuk "Pre-obesitas"
+    } else if (bmi <= 34.9) {
+      return Colors.red; // Untuk "Obesitas kelas I"
+    } else if (bmi <= 39.9) {
+      return Colors.red.shade700; // Untuk "Obesitas kelas II"
+    } else {
+      // bmi >= 40.0
+      return Colors.red.shade900; // Untuk "Obesitas kelas III"
+    }
   }
+  // --- AKHIR PERBAIKAN ---
 
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
     final status = getBmiStatus(bmi);
     final color = getBmiColor(bmi);
 
@@ -45,35 +66,32 @@ class BmiCard extends StatelessWidget {
             SfRadialGauge(
               axes: <RadialAxis>[
                 RadialAxis(
-                  minimum: 10,
-                  maximum: 35,
+                  minimum: 5,
+                  maximum: 45,
+                  interval: 5, // Ticks tiap 5 satuan
+                  minorTicksPerInterval: 4,
                   showLabels: true,
-                  showTicks: false,
+                  showTicks: true,
                   axisLineStyle: AxisLineStyle(
                     thickness: 0.2,
                     thicknessUnit: GaugeSizeUnit.factor,
                     cornerStyle: CornerStyle.bothCurve,
                     gradient: SweepGradient(
                       colors: [
-                        Colors.orange.shade400, // Sangat Kurus
-                        Colors.yellow.shade400, // Kurus
-                        Colors.green.shade500, // Normal
-                        Colors.orange.shade700, // Berlebih
-                        Colors.red.shade600, // Obesitas
+                        Colors.orange.shade400,
+                        Colors.yellow.shade400,
+                        Colors.green.shade500,
+                        Colors.orange.shade700,
+                        Colors.red.shade700,
                       ],
-                      stops: const [
-                        0.0, // end Sangat Kurus
-                        0.303, // end Kurus
-                        0.532, // end Normal
-                        0.707, // end Berlebih
-                        1.0 // end Obesitas
-                      ],
+                      stops: const [0.0, 0.25, 0.45, 0.707, 1.0],
                     ),
                   ),
                   pointers: <GaugePointer>[
                     NeedlePointer(
-                      value: bmi,
-                      needleColor: Colors.black,
+                      value: bmi.clamp(
+                          10.0, 35.0), // Clamp BMI value within gauge range
+                      needleColor: Colors.black, // Mengembalikan ke warna hitam
                       needleLength: 0.6,
                       needleStartWidth: 0,
                       needleEndWidth: 10,
@@ -100,37 +118,40 @@ class BmiCard extends StatelessWidget {
             ),
             const Text("BMI Kamu", style: TextStyle(fontSize: 18)),
             Text(
-              bmi.toStringAsFixed(1),
+              bmi.toStringAsFixed(1), // Menampilkan BMI dengan 1 desimal
               style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
             Text(
-              getBmiStatus(bmi),
-              style: TextStyle(fontSize: 16, color: color),
+              status, // Teks status BMI
+              style: TextStyle(
+                  fontSize: 16, color: color), // Menggunakan warna yang sesuai
             ),
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 12),
-            _buildLegend()
+            _buildLegend() // Membangun legenda
           ],
         ),
       ),
     );
   }
 
+  // --- Helper method untuk membangun legenda BMI sesuai backend ---
   Widget _buildLegend() {
     return Column(
-      children: const [
-        _LegendRow("Sangat Kurus", "< 16.0", Colors.orange),
-        _LegendRow("Kurus", "16.0 – 18.4", Colors.yellow),
-        _LegendRow("Berat Badan Normal", "18.5 – 24.9", Colors.green),
-        _LegendRow(
-            "Berlebihan Berat Badan", "25.0 – 29.9", Colors.orangeAccent),
-        _LegendRow("Obesitas", "≥ 30.0", Colors.red),
+      children: [
+        _LegendRow("Berat badan kurang", "< 18.5", Colors.orange.shade700),
+        _LegendRow("Berat badan normal", "18.5 – 24.9", Colors.green),
+        _LegendRow("Pre-obesitas", "25.0 – 29.9", Colors.orange),
+        _LegendRow("Obesitas kelas I", "30.0 – 34.9", Colors.red),
+        _LegendRow("Obesitas kelas II", "35.0 – 39.9", Colors.red.shade700),
+        _LegendRow("Obesitas kelas III", "≥ 40.0", Colors.red.shade900),
       ],
     );
   }
 }
 
+// Widget untuk satu baris legenda (tidak berubah)
 class _LegendRow extends StatelessWidget {
   final String label;
   final String range;

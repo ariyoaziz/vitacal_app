@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vitacal_app/themes/colors.dart';
-import 'package:vitacal_app/screen/analytics/showdialog_berat.dart';
+// PERBAIKAN: Menggunakan import yang benar untuk file dialog yang sudah digabungkan
+import 'package:vitacal_app/screen/analytics/showdialog_berat.dart'; // <<< PASTIKAN PATH INI BENAR >>>
 
 class BeratCard extends StatelessWidget {
   final String label;
@@ -19,6 +20,29 @@ class BeratCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String unit;
+    double minValue;
+    double maxValue;
+
+    // PERBAIKAN: Inisialisasi unit, minValue, dan maxValue berdasarkan label
+    if (label == "Berat Sekarang" || label == "Tujuan Berat") {
+      unit = "kg";
+      // PERBAIKAN minValue: Mengubah dari 30.0 ke 10.0
+      // Ini akan memungkinkan nilai seperti 24.9 untuk valid
+      minValue =
+          10.0; // Contoh nilai minimum yang lebih fleksibel untuk berat badan
+      maxValue = 200.0; // Contoh nilai maksimum untuk berat badan
+    } else if (label == "Tinggi Badan") {
+      unit = "cm";
+      minValue = 50.0; // Contoh nilai minimum untuk tinggi badan
+      maxValue = 250.0; // Contoh nilai maksimum untuk tinggi badan
+    } else {
+      // Default jika label tidak cocok (seharusnya tidak terjadi jika pemanggilan sudah tepat)
+      unit = "";
+      minValue = 0.0;
+      maxValue = 100.0;
+    }
+
     return Card(
       color: AppColors.screen,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)),
@@ -45,7 +69,9 @@ class BeratCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 21),
                 Text(
-                  "${value.toStringAsFixed(2)} kg",
+                  // Menggunakan .toStringAsFixed(1) untuk menampilkan satu angka desimal
+                  // sesuai dengan presisi picker dan kebutuhan.
+                  "${value.toStringAsFixed(1)} $unit", // Menambahkan unit langsung di sini
                   style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -59,13 +85,20 @@ class BeratCard extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                showUpdateBeratDialog(
+                // Memanggil fungsi dialog showUpdateValueDialog yang sudah digabungkan
+                showUpdateValueDialog(
                   context: context,
                   title: label,
+                  onSave: (newValue) {
+                    onUpdate(
+                        newValue); // Meneruskan nilai yang disimpan kembali
+                  },
                   initialValue: value,
-                  minValue: 10.0,
-                  maxValue: 200.0,
-                  onSave: onUpdate,
+                  minValue:
+                      minValue, // Meneruskan minValue yang sudah disesuaikan
+                  maxValue:
+                      maxValue, // Meneruskan maxValue yang sudah disesuaikan
+                  unit: unit,
                 );
               },
               style: ElevatedButton.styleFrom(

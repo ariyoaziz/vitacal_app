@@ -3,29 +3,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vitacal_app/exceptions/auth_exception.dart'; // Re-use AuthException
+import 'package:vitacal_app/exceptions/auth_exception.dart';
 import 'package:vitacal_app/models/userdetail_model.dart';
-import 'package:vitacal_app/models/enums.dart'; // Impor Enum
-import 'package:vitacal_app/services/constatans.dart'; // Import AppConstants
+import 'package:vitacal_app/models/enums.dart';
+import 'package:vitacal_app/services/constants.dart';
 
+/// Service untuk berinteraksi dengan API terkait detail pengguna.
 class UserDetailService {
   final String _baseUrl = AppConstants.baseUrl;
 
-  // Assume this method exists to get user ID from SharedPreferences
-  Future<int?> _getUserIdFromPrefs() async {
+  Future<String?> _getJwtToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('user_id'); // Assuming user ID is stored as int
+    return prefs.getString('jwt_token');
   }
 
-  // Helper for authenticated requests (similar to CalorieService)
   Future<Map<String, dynamic>> _sendAuthenticatedRequest(
     String endpoint, {
     String method = 'GET',
     Map<String, dynamic>? body,
   }) async {
     final url = Uri.parse('$_baseUrl/$endpoint');
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt_token');
+    final token = await _getJwtToken();
 
     if (token == null) {
       throw AuthException('Anda belum login. Silakan login kembali.');
@@ -39,15 +37,22 @@ class UserDetailService {
     http.Response response;
 
     try {
-      if (method == 'POST') {
-        response =
-            await http.post(url, headers: headers, body: jsonEncode(body));
-      } else if (method == 'PUT') {
-        // Added PUT method
-        response =
-            await http.put(url, headers: headers, body: jsonEncode(body));
-      } else {
-        response = await http.get(url, headers: headers);
+      switch (method.toUpperCase()) {
+        case 'POST':
+          response =
+              await http.post(url, headers: headers, body: jsonEncode(body));
+          break;
+        case 'PUT':
+          response =
+              await http.put(url, headers: headers, body: jsonEncode(body));
+          break;
+        case 'DELETE':
+          response = await http.delete(url, headers: headers);
+          break;
+        case 'GET':
+        default:
+          response = await http.get(url, headers: headers);
+          break;
       }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -65,70 +70,28 @@ class UserDetailService {
         throw AuthException(errorMessage);
       }
     } on http.ClientException catch (e) {
-      throw AuthException('Gagal terhubung ke server. (${e.message})');
+      throw AuthException(
+          'Gagal terhubung ke server. Pastikan koneksi internet Anda stabil. (${e.message})');
     } catch (e) {
       throw AuthException('Terjadi masalah tak terduga: ${e.toString()}');
     }
   }
 
-  // --- NEW METHOD: Get User Detail ---
   Future<UserDetailModel> getUserDetail() async {
-    final userId = await _getUserIdFromPrefs();
-    if (userId == null) {
-      throw AuthException('User ID tidak ditemukan. Mohon login ulang.');
-    }
-    // Assuming backend endpoint is something like /user-detail/<user_id>
     final responseData =
-        await _sendAuthenticatedRequest('user-detail/$userId', method: 'GET');
-    // Adjust key 'user_detail' based on your actual Flask response structure
+        await _sendAuthenticatedRequest('user-detail', method: 'GET');
     return UserDetailModel.fromJson(responseData['user_detail']);
   }
 
-  // --- NEW METHOD: Update User Detail Weight ---
-  Future<UserDetailModel> updateUserDetailWeight({
-    required double newWeight,
-    required double
-        currentHeight, // Assuming height is needed for BMI recalc in backend
-  }) async {
-    final userId = await _getUserIdFromPrefs();
-    if (userId == null) {
-      throw AuthException('User ID tidak ditemukan. Mohon login ulang.');
-    }
-
-    // Assuming backend endpoint for updating user detail is /user-detail/<user_id> (PUT method)
-    // And it expects 'berat_badan' and 'tinggi_badan' (for BMI recalc)
-    final Map<String, dynamic> body = {
-      'berat_badan': newWeight,
-      'tinggi_badan':
-          currentHeight, // Send height back to backend for BMI recalculation
-    };
-    final responseData = await _sendAuthenticatedRequest('user-detail/$userId',
-        method: 'PUT', body: body);
-    return UserDetailModel.fromJson(
-        responseData['user_detail']); // Adjust key if needed
-  }
-
-  // --- NEW METHOD: Update User Detail Target Weight ---
-  Future<UserDetailModel> updateUserDetailTargetWeight({
-    required double newTargetWeight,
-  }) async {
-    final userId = await _getUserIdFromPrefs();
-    if (userId == null) {
-      throw AuthException('User ID tidak ditemukan. Mohon login ulang.');
-    }
-
-    // Assuming backend endpoint for updating user detail is /user-detail/<user_id> (PUT method)
-    // And it expects 'target_berat_badan'
-    final Map<String, dynamic> body = {
-      'target_berat_badan':
-          newTargetWeight, // Ensure this matches your backend field name
-    };
-    final responseData = await _sendAuthenticatedRequest('user-detail/$userId',
-        method: 'PUT', body: body);
+  Future<UserDetailModel> updateUserDetail(Map<String, dynamic> updates) async {
+    final responseData = await _sendAuthenticatedRequest(
+      'user-detail',
+      method: 'PUT',
+      body: updates,
+    );
     return UserDetailModel.fromJson(responseData['user_detail']);
   }
 
-  // Keep your existing addUserDetail method if it's still needed
   Future<UserDetailModel> addUserDetail({
     required int userId,
     required String nama,
@@ -141,22 +104,18 @@ class UserDetailService {
   }) async {
     final url = Uri.parse('$_baseUrl/user-detail');
 
+    final Map<String, dynamic> body = {
+      'user_id': userId,
+      'nama': nama,
+      'umur': umur,
+      'jenis_kelamin': jenisKelamin.toApiString(),
+      'berat_badan': beratBadan,
+      'tinggi_badan': tinggiBadan,
+      'aktivitas': aktivitas.toApiString(),
+      'tujuan': tujuan?.toApiString(),
+    };
+
     try {
-      final Map<String, dynamic> body = {
-        'user_id': userId,
-        'nama': nama,
-        'umur': umur,
-        'jenis_kelamin': jenisKelamin.toApiString(),
-        'berat_badan': beratBadan,
-        'tinggi_badan': tinggiBadan,
-        'aktivitas': aktivitas.toApiString(),
-        'tujuan': tujuan?.toApiString(),
-      };
-
-      if (tujuan == null) {
-        body.remove('tujuan');
-      }
-
       final response = await http.post(
         url,
         headers: <String, String>{
@@ -187,5 +146,44 @@ class UserDetailService {
       throw AuthException(
           'Terjadi masalah tak terduga saat tambah user detail. Mohon coba lagi nanti.');
     }
+  }
+
+  Future<void> deleteUserDetail() async {
+    await _sendAuthenticatedRequest('user-detail', method: 'DELETE');
+  }
+
+  // --- Metode Statis untuk Data Dummy Grafik ---
+  static List<Map<String, dynamic>> getDummyWeightHistory() {
+    return [
+      {"date": "2024-01-01", "weight": 57.5},
+      {"date": "2024-01-08", "weight": 58.0},
+      {"date": "2024-01-15", "weight": 58.2},
+      {"date": "2024-01-22", "weight": 57.9},
+      {"date": "2024-01-29", "weight": 58.5},
+      {"date": "2024-02-05", "weight": 58.3},
+      {"date": "2024-02-12", "weight": 58.7},
+      {"date": "2024-02-19", "weight": 58.9},
+      {"date": "2024-02-26", "weight": 59.2},
+      {"date": "2024-03-04", "weight": 59.0},
+      {"date": "2024-03-11", "weight": 59.5},
+      {"date": "2024-03-18", "weight": 59.3},
+    ];
+  }
+
+  static List<Map<String, dynamic>> getDummyCalorieData() {
+    return [
+      {"date": "2024-06-01", "calories": 2000},
+      {"date": "2024-06-02", "calories": 1800},
+      {"date": "2024-06-03", "calories": 2200},
+      {"date": "2024-06-04", "calories": 2100},
+      {"date": "2024-06-05", "calories": 1950},
+      {"date": "2024-06-06", "calories": 2300},
+      {"date": "2024-06-07", "calories": 1750},
+      {"date": "2024-06-08", "calories": 2050},
+      {"date": "2024-06-09", "calories": 1900},
+      {"date": "2024-06-10", "calories": 2150},
+      {"date": "2024-06-11", "calories": 2000},
+      {"date": "2024-06-12", "calories": 1850},
+    ];
   }
 }

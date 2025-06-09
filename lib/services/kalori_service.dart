@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vitacal_app/models/kalori_model.dart';
 import 'package:vitacal_app/exceptions/auth_exception.dart';
-import 'package:vitacal_app/services/constatans.dart'; // <<< Gunakan AuthException
+import 'package:vitacal_app/services/constants.dart'; // <<< Gunakan AuthException
 
 class CalorieService {
   final String _baseUrl = AppConstants.baseUrl;

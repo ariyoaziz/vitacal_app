@@ -1,48 +1,76 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:vitacal_app/themes/colors.dart';
+import 'package:intl/intl.dart'; // Untuk memformat tanggal
+import 'package:intl/date_symbol_data_local.dart'; // Untuk inisialisasi data lokal
 
-class CardBeratGrafik extends StatefulWidget {
-  const CardBeratGrafik({super.key});
+/// Widget untuk menampilkan grafik berat badan.
+/// Menerima data berat badan melalui properti 'data'.
+class CardBeratGrafik extends StatelessWidget {
+  final List<Map<String, dynamic>> data;
 
-  @override
-  State<CardBeratGrafik> createState() => _CardBeratGrafikState();
-}
-
-class _CardBeratGrafikState extends State<CardBeratGrafik> {
-  String selectedRange = 'Minggu';
-
-  final List<String> rangeOptions = ['Minggu', 'Bulan'];
-
-  final List<FlSpot> beratMinggu = [
-    FlSpot(1, 60),
-    FlSpot(2, 61),
-    FlSpot(3, 61.5),
-    FlSpot(4, 60.5),
-    FlSpot(5, 62.2),
-    FlSpot(6, 63),
-    FlSpot(7, 62.5),
-  ];
-
-  final List<FlSpot> beratBulan = [
-    FlSpot(1, 60),
-    FlSpot(2, 61),
-    FlSpot(3, 62),
-    FlSpot(4, 63),
-  ];
-
-  List<String> getBottomTitles() {
-    return selectedRange == 'Minggu'
-        ? ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
-        : ['1', '2', '3', '4'];
-  }
-
-  List<FlSpot> getChartData() {
-    return selectedRange == 'Minggu' ? beratMinggu : beratBulan;
-  }
+  const CardBeratGrafik({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
+    initializeDateFormatting('id_ID', null);
+
+    final List<Map<String, dynamic>> displayedData =
+        data.reversed.take(7).toList().reversed.toList();
+    // Jika Anda ingin menampilkan semua data yang tersedia, cukup gunakan 'data' langsung.
+    // final List<Map<String, dynamic>> displayedData = data;
+
+    // Memastikan ada data untuk ditampilkan
+    if (displayedData.isEmpty) {
+      return Card(
+        color: AppColors.screen,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 1,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 24),
+              Container(
+                height: 200,
+                alignment: Alignment.center,
+                child: Text(
+                  'Tidak ada data berat badan tersedia.',
+                  style: TextStyle(color: AppColors.darkGrey),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Mengonversi displayedData menjadi FlSpot untuk LineChart
+    final List<FlSpot> spots = List.generate(displayedData.length, (index) {
+      final item = displayedData[index];
+      final double weight = (item['weight'] as num).toDouble();
+      return FlSpot(
+          index.toDouble(), weight); // X-axis sebagai index 0, 1, 2...
+    });
+
+    // Menentukan nilai minimal dan maksimal Y untuk grafik secara dinamis
+    double minY = (displayedData
+                .map((e) => (e['weight'] as num).toDouble())
+                .reduce((value, element) => value < element ? value : element) -
+            5)
+        .floorToDouble(); // Kurangi sedikit untuk margin bawah
+    double maxY = (displayedData
+                .map((e) => (e['weight'] as num).toDouble())
+                .reduce((value, element) => value > element ? value : element) +
+            5)
+        .ceilToDouble(); // Tambah sedikit untuk margin atas
+
+    if (minY < 0) minY = 0; // Memastikan minY tidak kurang dari 0
+
     return Card(
       color: AppColors.screen,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -52,80 +80,24 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.orangeAccent,
-                    shape: BoxShape.circle,
-                  ),
-                  padding: const EdgeInsets.all(6),
-                  child: const Icon(Icons.monitor_weight_rounded,
-                      color: Colors.white, size: 16),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Berat Badan',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightgreen,
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedRange,
-                      icon:
-                          const Icon(Icons.expand_more, color: Colors.black87),
-                      dropdownColor: AppColors.screen,
-                      style:
-                          const TextStyle(fontSize: 14, color: Colors.black87),
-                      borderRadius: BorderRadius.circular(11),
-                      onChanged: (newValue) {
-                        setState(() {
-                          selectedRange = newValue!;
-                        });
-                      },
-                      items: rangeOptions.map((value) {
-                        return DropdownMenuItem(
-                          value: value,
-                          child: Text(value,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w500)),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _buildHeader(),
             const SizedBox(height: 30),
 
-            // Grafik
+            // Grafik Berat Badan
             AspectRatio(
               aspectRatio: 0.8,
               child: LineChart(
                 LineChartData(
-                  minY: 20,
-                  maxY: 150,
+                  minY: minY,
+                  maxY: maxY,
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: true,
                     getDrawingHorizontalLine: (_) => FlLine(
-                      // ignore: deprecated_member_use
                       color: Colors.grey.withOpacity(0.2),
                       strokeWidth: 1,
                     ),
                     getDrawingVerticalLine: (_) => FlLine(
-                      // ignore: deprecated_member_use
                       color: Colors.grey.withOpacity(0.2),
                       strokeWidth: 1,
                     ),
@@ -135,7 +107,7 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 40,
-                        interval: 10, // Tampilkan semua label Y
+                        interval: (maxY - minY) / 4, // Interval dinamis Y axis
                         getTitlesWidget: (value, _) => Text(
                           '${value.toInt()} Kg',
                           style: const TextStyle(fontSize: 11),
@@ -146,17 +118,22 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, _) {
-                          List<String> labels = getBottomTitles();
-                          int index = value.toInt() - 1;
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              (index >= 0 && index < labels.length)
-                                  ? labels[index]
-                                  : '',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          );
+                          final index = value.toInt();
+                          if (index >= 0 && index < displayedData.length) {
+                            // Ambil tanggal dari data dan format menjadi DD/MM
+                            final dateString =
+                                displayedData[index]['date'] as String;
+                            final dateTime = DateTime.parse(dateString);
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                DateFormat('dd/MM').format(
+                                    dateTime), // Output: '09/06', '10/06'
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            );
+                          }
+                          return const SizedBox();
                         },
                       ),
                     ),
@@ -168,7 +145,7 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
                   borderData: FlBorderData(show: false),
                   lineBarsData: [
                     LineChartBarData(
-                      spots: getChartData(),
+                      spots: spots,
                       isCurved: true,
                       barWidth: 3,
                       gradient: LinearGradient(
@@ -188,7 +165,6 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
                         show: true,
                         gradient: LinearGradient(
                           colors: [
-                            // ignore: deprecated_member_use
                             AppColors.primary.withOpacity(0.2),
                             Colors.transparent
                           ],
@@ -223,6 +199,35 @@ class _CardBeratGrafikState extends State<CardBeratGrafik> {
           ],
         ),
       ),
+    );
+  }
+
+  // Fungsi helper untuk header
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            color: Colors.orangeAccent,
+            shape: BoxShape.circle,
+          ),
+          padding: const EdgeInsets.all(6),
+          child: const Icon(Icons.monitor_weight_rounded,
+              color: Colors.white, size: 16),
+        ),
+        const SizedBox(width: 10),
+        // --- PERBAIKAN: Judul yang lebih spesifik ---
+        const Text(
+          'Berat Badan',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        // --- AKHIR PERBAIKAN ---
+        const Spacer(),
+      ],
     );
   }
 }

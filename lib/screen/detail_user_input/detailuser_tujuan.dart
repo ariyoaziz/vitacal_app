@@ -9,7 +9,7 @@ import 'package:vitacal_app/models/user_detail_form_data.dart';
 import 'package:vitacal_app/screen/widgets/costum_dialog.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
-import 'package:vitacal_app/screen/auth/login.dart'; // <--- Import halaman Login
+import 'package:vitacal_app/screen/auth/login.dart';
 
 class DetailuserTujuan extends StatefulWidget {
   final UserDetailFormData formData;
@@ -21,7 +21,7 @@ class DetailuserTujuan extends StatefulWidget {
 }
 
 class _DetailuserTujuanState extends State<DetailuserTujuan> {
-  final double _progressValue = 1.0; // <--- Nilai progress 1.0 (sudah selesai)
+  final double _progressValue = 1.0;
   Tujuan? _selectedTujuan;
   String? _tujuanErrorMessage;
   bool _isLoading = false;
@@ -113,7 +113,7 @@ class _DetailuserTujuanState extends State<DetailuserTujuan> {
                 });
               }
 
-              if (state is UserDetailAddedSuccess) {
+              if (state is UserDetailAddSuccess) {
                 showDialog(
                   context: context,
                   barrierDismissible: false,

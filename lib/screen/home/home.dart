@@ -1,11 +1,12 @@
 // lib/screen/home/home.dart
 
 // ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // Import flutter_bloc
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Import screen dan bloc terkait
 import 'package:vitacal_app/screen/home/kalender.dart';
@@ -14,17 +15,13 @@ import 'package:vitacal_app/screen/home/makan_malam.dart';
 import 'package:vitacal_app/screen/home/makan_pagi.dart';
 import 'package:vitacal_app/screen/home/makan_siang.dart';
 import 'package:vitacal_app/screen/home/notifikasi.dart';
-// import 'package:vitacal_app/screen/widgets/navabar.dart'; // Path ini tidak digunakan, dihapus
 
-// Import tema, models, dan blocs dengan nama baru
+// Import tema, models, dan blocs
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:vitacal_app/models/kalori_model.dart'; // Menggunakan kalori_model.dart
 import 'package:vitacal_app/blocs/kalori/kalori_bloc.dart'; // Menggunakan kalori_bloc.dart
 import 'package:vitacal_app/blocs/kalori/kalori_event.dart'; // Menggunakan kalori_event.dart
 import 'package:vitacal_app/blocs/kalori/kalori_state.dart'; // Menggunakan kalori_state.dart
-// Hapus import yang tidak diperlukan lagi karena login tidak lagi di Home
-// import 'package:vitacal_app/services/auth_service.dart';
-// import 'package:vitacal_app/exceptions/auth_exception.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -49,7 +46,7 @@ class _HomeState extends State<Home> {
   late List<DateTime> weekDates; // Daftar tanggal dari Senin sampai Minggu
 
   KaloriModel?
-      _currentKaloriModel; // Menyimpan data kalori yang sedang ditampilkan (menggunakan KaloriModel)
+      _currentKaloriModel; // Menyimpan data kalori yang sedang ditampilkan
 
   @override
   void initState() {
@@ -70,7 +67,6 @@ class _HomeState extends State<Home> {
         DateFormat("yyyy-MM-dd").format(today));
 
     // Panggil event untuk mengambil data saat initState
-    // Gunakan addPostFrameCallback untuk memastikan context sudah tersedia
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _triggerFetchKaloriData(); // Hanya memicu fetch data
     });
@@ -78,8 +74,6 @@ class _HomeState extends State<Home> {
 
   // Fungsi untuk memicu pengambilan data kalori
   Future<void> _triggerFetchKaloriData() async {
-    // Asumsi: Pengguna sudah berhasil login melalui AuthBloc (misalnya, di SplashScreen)
-    // dan token JWT sudah tersimpan di SharedPreferences.
     print(
         'Home: Memicu FetchKaloriData event. Mengasumsikan pengguna sudah login.');
     context.read<KaloriBloc>().add(const FetchKaloriData());
@@ -91,7 +85,18 @@ class _HomeState extends State<Home> {
     context.read<KaloriBloc>().add(const FetchKaloriData());
     // Beri waktu sebentar agar BLoC sempat memproses dan emit state
     await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return; // Guard context usage
+    if (!mounted) return;
+  }
+
+  // Helper function untuk mengonversi string snake_case ke Title Case untuk tampilan UI
+  String _formatSnakeCaseToTitleCase(String snakeCaseString) {
+    if (snakeCaseString.isEmpty) return '';
+    return snakeCaseString
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((word) =>
+            word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
   }
 
   // Widget helper untuk membuat kartu makan
@@ -140,7 +145,8 @@ class _HomeState extends State<Home> {
                             fontWeight: FontWeight.bold,
                             color: AppColors.darkGrey)),
                     const SizedBox(height: 5),
-                    Text("Total: 0 Kkal", // DIUBAH: Default 0 Kkal
+                    Text(
+                        "Total: 0 Kkal", // Tetap 0 Kkal karena data belum diintegrasikan
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
@@ -161,7 +167,7 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-    double iconSize = 24.0; // Ukuran ikon yang konsisten
+    double iconSize = 24.0;
 
     return Scaffold(
       backgroundColor: AppColors.screen.withOpacity(0.98),
@@ -172,10 +178,8 @@ class _HomeState extends State<Home> {
           backgroundColor: AppColors.screen,
           strokeWidth: 3,
           displacement: 60,
-          // Gunakan BlocConsumer untuk mendengarkan perubahan state dan membangun UI
           child: BlocConsumer<KaloriBloc, KaloriState>(
             listener: (context, state) {
-              // Logika untuk menampilkan Snackbar atau navigasi
               if (state is KaloriError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -188,97 +192,95 @@ class _HomeState extends State<Home> {
                       content: Text(state.message),
                       backgroundColor: Colors.green),
                 );
-                // Jika data berhasil dihapus, kita bisa menghapus data dari tampilan
                 setState(() {
-                  _currentKaloriModel = null;
+                  _currentKaloriModel = null; // Set null jika data dihapus
                 });
               } else if (state is KaloriLoaded) {
-                // Saat data baru dimuat, perbarui _currentKaloriModel
                 setState(() {
                   _currentKaloriModel = state.kaloriModel;
                 });
               }
             },
             builder: (context, state) {
-              // Deklarasi nilai default atau dari state
-              int kaloriSudahDikonsumsiHariIni =
-                  0; // Set ke 0 untuk data sementara
-              int kaloriYangMasihBisaDikonsumsi =
-                  0; // Ini akan menjadi kalori sisa
-              int totalRekomendasiKalori = 0; // Ini adalah target dari API
+              int kaloriSudahDikonsumsiHariIni = 0;
+              int kaloriYangMasihBisaDikonsumsi = 0;
+              int totalRekomendasiKalori = 0;
 
               double progressValue = 0.0;
               bool isLoading = false;
-              List<TextSpan> displayMessageSpans =
-                  []; // Menggunakan List<TextSpan>
+              List<TextSpan> displayMessageSpans = [];
 
-              // Menentukan nilai berdasarkan state BLoC
               if (state is KaloriLoading) {
                 isLoading = true;
                 displayMessageSpans
                     .add(const TextSpan(text: "Memuat data kalori..."));
               } else if (state is KaloriLoaded) {
-                totalRekomendasiKalori =
-                    _currentKaloriModel?.numericRekomendasiKalori ?? 0;
-                kaloriYangMasihBisaDikonsumsi =
-                    totalRekomendasiKalori - kaloriSudahDikonsumsiHariIni;
-                if (kaloriYangMasihBisaDikonsumsi < 0) {
-                  kaloriYangMasihBisaDikonsumsi = 0;
-                }
+                // Pastikan _currentKaloriModel tidak null sebelum mengakses
+                if (_currentKaloriModel != null) {
+                  totalRekomendasiKalori =
+                      _currentKaloriModel!.numericRekomendasiKalori;
+                  kaloriYangMasihBisaDikonsumsi =
+                      totalRekomendasiKalori - kaloriSudahDikonsumsiHariIni;
+                  if (kaloriYangMasihBisaDikonsumsi < 0) {
+                    kaloriYangMasihBisaDikonsumsi = 0;
+                  }
 
-                progressValue = totalRekomendasiKalori > 0
-                    ? kaloriYangMasihBisaDikonsumsi / totalRekomendasiKalori
-                    : 0.0;
-                if (progressValue < 0) {
-                  progressValue = 0;
-                }
-                if (progressValue > 1) {
-                  progressValue = 1;
-                }
+                  progressValue = totalRekomendasiKalori > 0
+                      ? kaloriYangMasihBisaDikonsumsi / totalRekomendasiKalori
+                      : 0.0;
+                  if (progressValue < 0) {
+                    progressValue = 0;
+                  }
+                  if (progressValue > 1) {
+                    progressValue = 1;
+                  }
 
-                // DIUBAH: Pesan ringkas dengan bold dan penyesuaian UX
-                if (_currentKaloriModel != null &&
-                    _currentKaloriModel!.tujuan.isNotEmpty) {
-                  displayMessageSpans.add(
-                    TextSpan(
-                      text: "",
-                      style: TextStyle(fontWeight: FontWeight.w400),
-                    ),
-                  );
-                  displayMessageSpans.add(
-                    TextSpan(
-                      text: "${_currentKaloriModel!.tujuan}.",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  );
-                  displayMessageSpans.add(
-                    const TextSpan(
-                      text: " Yuk, siap jaga pola makan!",
-                      style: TextStyle(
-                          fontWeight:
-                              FontWeight.w400), // Normal weight for consistency
-                    ),
-                  );
+                  // --- PERBAIKAN DI SINI: Menggunakan _formatSnakeCaseToTitleCase ---
+                  if (_currentKaloriModel!.tujuan.isNotEmpty) {
+                    displayMessageSpans.add(
+                      const TextSpan(
+                        text: "",
+                        style: TextStyle(fontWeight: FontWeight.w400),
+                      ),
+                    );
+                    displayMessageSpans.add(
+                      TextSpan(
+                        text: _formatSnakeCaseToTitleCase(
+                            _currentKaloriModel!.tujuan), // Menggunakan helper
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    );
+                    displayMessageSpans.add(
+                      const TextSpan(
+                        text: ". Mari konsisten capai pola makan yang sehat!",
+                        style: TextStyle(fontWeight: FontWeight.w400),
+                      ),
+                    );
+                  } else {
+                    displayMessageSpans.add(
+                      const TextSpan(
+                        text: "Yuk, siap jaga pola makan!",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  }
                 } else {
-                  displayMessageSpans.add(
-                    const TextSpan(
-                      text: "Yuk, siap jaga pola makan!",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  );
+                  // Fallback jika KaloriLoaded tetapi _currentKaloriModel null (jarang terjadi)
+                  displayMessageSpans
+                      .add(const TextSpan(text: "Data kalori tidak tersedia."));
                 }
               } else if (state is KaloriError) {
                 displayMessageSpans.add(TextSpan(
-                    text: state.message, style: TextStyle(color: Colors.red)));
+                    text: state.message,
+                    style: const TextStyle(color: Colors.red)));
               } else if (state is KaloriSuccess) {
+                // Ini adalah KaloriSuccess, bukan KaloriAddSuccess
                 displayMessageSpans.add(TextSpan(text: state.message));
-                // Setelah sukses, _currentKaloriModel sudah disetel null di listener
+                // _currentKaloriModel sudah di-set null di listener
               } else if (state is KaloriInitial) {
-                // Pesan awal yang jelas
                 displayMessageSpans.add(const TextSpan(
                     text: "Memuat data awal atau tidak ada data kalori."));
               } else {
-                // Fallback jika state tidak terduga, atau sebelum KaloriInitial pertama
                 displayMessageSpans
                     .add(const TextSpan(text: "Selamat datang di VitaCal!"));
               }
@@ -311,7 +313,6 @@ class _HomeState extends State<Home> {
                                     height: iconSize,
                                   ),
                                   onPressed: () {
-                                    // Panggil dialog kalender dari file terpisah
                                     showKalenderDialog(context);
                                   },
                                 ),
@@ -338,13 +339,17 @@ class _HomeState extends State<Home> {
                         const SizedBox(height: 33),
 
                         // Tanggal utama (tanggal hari ini)
-                        Text(
-                          DateFormat("d MMMM yyyy", 'id_ID').format(
-                              DateTime.now()), // DIUBAH: Menggunakan 'yyyy'
-                          style: TextStyle(
-                            color: AppColors.darkGrey,
-                            fontSize: 20.0,
-                            fontWeight: FontWeight.bold,
+                        Align(
+                          alignment:
+                              Alignment.centerLeft, // Menggeser tanggal ke kiri
+                          child: Text(
+                            DateFormat("d MMMM yyyy", 'id_ID').format(DateTime
+                                .now()), // Menggunakan 'yyyy' untuk tahun
+                            style: const TextStyle(
+                              color: AppColors.darkGrey,
+                              fontSize: 20.0,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 33),
@@ -420,16 +425,15 @@ class _HomeState extends State<Home> {
                           ),
                         ),
                         const SizedBox(height: 33),
+
+                        // Area Pesan Ringkas
                         SizedBox(
                           width: 280,
                           child: RichText(
-                            // Menggunakan RichText untuk bold
                             textAlign: TextAlign.center,
                             text: TextSpan(
-                              children:
-                                  displayMessageSpans, // Menggunakan List<TextSpan>
-                              style: TextStyle(
-                                // Default style untuk RichText
+                              children: displayMessageSpans,
+                              style: const TextStyle(
                                 color: AppColors.darkGrey,
                                 fontSize: 14.0,
                                 fontWeight: FontWeight.w400,
@@ -497,9 +501,7 @@ class _HomeState extends State<Home> {
                                               width: 170,
                                               height: 170,
                                               child: CircularProgressIndicator(
-                                                // Jika progressValue 1.0 (lingkaran penuh), ini berarti belum ada yang dikonsumsi
-                                                value:
-                                                    progressValue, // Progress based on remaining vs recommended
+                                                value: progressValue,
                                                 backgroundColor: Colors.white
                                                     .withOpacity(0.2),
                                                 valueColor:
@@ -512,11 +514,9 @@ class _HomeState extends State<Home> {
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
                                               children: [
-                                                const Icon(
-                                                  Icons.bolt,
-                                                  color: Colors.amber,
-                                                  size: 28,
-                                                ),
+                                                const Icon(Icons.bolt,
+                                                    color: Colors.amber,
+                                                    size: 28),
                                                 const SizedBox(height: 5),
                                                 FittedBox(
                                                   child: Text(
@@ -530,15 +530,14 @@ class _HomeState extends State<Home> {
                                                   ),
                                                 ),
                                                 const SizedBox(height: 5),
-                                                SizedBox(
+                                                const SizedBox(
                                                   width: 120,
                                                   child: Text(
                                                     "Kalori Harian Direkomendasikan", // Teks disesuaikan
                                                     textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                       fontSize: 13,
-                                                      color: Colors.white
-                                                          .withOpacity(0.8),
+                                                      color: Colors.white,
                                                       fontWeight:
                                                           FontWeight.w400,
                                                     ),

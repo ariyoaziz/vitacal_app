@@ -7,7 +7,18 @@ enum JenisKelamin {
 }
 
 extension JenisKelaminExtension on JenisKelamin {
+  // Mengonversi enum ke string format snake_case yang diharapkan API
   String toApiString() {
+    switch (this) {
+      case JenisKelamin.lakiLaki:
+        return "laki_laki";
+      case JenisKelamin.perempuan:
+        return "perempuan";
+    }
+  }
+
+  // BARU: Mengonversi enum ke string yang mudah dibaca untuk tampilan UI
+  String toDisplayString() {
     switch (this) {
       case JenisKelamin.lakiLaki:
         return "Laki-laki";
@@ -27,7 +38,24 @@ enum Aktivitas {
 }
 
 extension AktivitasExtension on Aktivitas {
+  // Mengonversi enum ke string format snake_case yang diharapkan API
   String toApiString() {
+    switch (this) {
+      case Aktivitas.tidakAktif:
+        return "tidak_aktif";
+      case Aktivitas.ringan:
+        return "ringan";
+      case Aktivitas.sedang:
+        return "sedang";
+      case Aktivitas.berat:
+        return "berat";
+      case Aktivitas.sangatBerat:
+        return "sangat_berat";
+    }
+  }
+
+  // BARU: Mengonversi enum ke string yang mudah dibaca untuk tampilan UI
+  String toDisplayString() {
     switch (this) {
       case Aktivitas.tidakAktif:
         return "Tidak Aktif";
@@ -52,7 +80,22 @@ enum Tujuan {
 }
 
 extension TujuanExtension on Tujuan {
+  // Mengonversi enum ke string format snake_case yang diharapkan API
   String toApiString() {
+    switch (this) {
+      case Tujuan.menurunkanBeratBadan:
+        return "menurunkan_berat_badan";
+      case Tujuan.menambahBeratBadan:
+        return "menambah_berat_badan";
+      case Tujuan.menjagaBeratBadanIdeal:
+        return "menjaga_berat_badan_ideal";
+      case Tujuan.menaikanMassaTubuh:
+        return "menaikan_massa_tubuh";
+    }
+  }
+
+  // BARU: Mengonversi enum ke string yang mudah dibaca untuk tampilan UI
+  String toDisplayString() {
     switch (this) {
       case Tujuan.menurunkanBeratBadan:
         return "Menurunkan Berat Badan";
@@ -61,7 +104,7 @@ extension TujuanExtension on Tujuan {
       case Tujuan.menjagaBeratBadanIdeal:
         return "Menjaga Berat Badan Ideal";
       case Tujuan.menaikanMassaTubuh:
-        return "Menaikan Massa Tubuh";
+        return "Menaikkan Massa Tubuh";
     }
   }
 }

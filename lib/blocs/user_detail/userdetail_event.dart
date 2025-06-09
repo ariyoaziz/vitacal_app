@@ -1,16 +1,18 @@
-// lib/blocs/user_detail/userdetail_event.dart
-
 import 'package:equatable/equatable.dart';
 import 'package:vitacal_app/models/enums.dart';
 
+/// Abstract base class untuk semua event terkait detail pengguna.
+/// Setiap event harus meng-override [props] untuk perbandingan yang efektif menggunakan Equatable.
 abstract class UserDetailEvent extends Equatable {
   const UserDetailEvent();
 
   @override
-  List<Object> get props => [];
+  // PERBAIKAN: Mengubah tipe kembalian menjadi List<Object?> untuk menangani properti nullable
+  List<Object?> get props => [];
 }
 
-// Existing event for adding new user details (e.g., during registration flow)
+/// Event untuk menambah detail pengguna baru.
+/// Biasanya dipanggil saat alur pendaftaran awal untuk menyimpan data detail pengguna.
 class AddUserDetail extends UserDetailEvent {
   final int userId;
   final String nama;
@@ -45,31 +47,16 @@ class AddUserDetail extends UserDetailEvent {
       ];
 }
 
-// --- NEW EVENTS FOR ANALYTICS PAGE ---
-
-// Event to load the current user's details from the backend
 class LoadUserDetail extends UserDetailEvent {}
 
-// Event to update the user's current weight
-class UpdateUserDetailWeight extends UserDetailEvent {
-  final double newWeight;
-  final double currentHeight; // Needed for backend BMI recalculation
+class UpdateUserDetail extends UserDetailEvent {
+  final Map<String, dynamic> updates;
 
-  const UpdateUserDetailWeight({
-    required this.newWeight,
-    required this.currentHeight,
-  });
+  const UpdateUserDetail({required this.updates});
 
   @override
-  List<Object> get props => [newWeight, currentHeight];
+  List<Object> get props =>
+      [updates]; // Ini tetap List<Object> karena Map tidak nullable di sini
 }
 
-// Event to update the user's target weight
-class UpdateUserDetailTargetWeight extends UserDetailEvent {
-  final double newTargetWeight;
-
-  const UpdateUserDetailTargetWeight({required this.newTargetWeight});
-
-  @override
-  List<Object> get props => [newTargetWeight];
-}
+class DeleteUserDetail extends UserDetailEvent {}

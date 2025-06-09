@@ -1,29 +1,115 @@
+// ignore_for_file: no_leading_underscores_for_local_identifiers, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
-Future<void> showUpdateBeratDialog({
+Future<void> showUpdateValueDialog({
   required BuildContext context,
   required String title,
   required void Function(double value) onSave,
   required double initialValue,
   required double minValue,
   required double maxValue,
+  required String unit,
 }) async {
-  final TextEditingController depanController = TextEditingController(
-    text: initialValue.floor().toString().padLeft(2, '0'),
+  // Menginisialisasi bagian bulat dan desimal dari nilai awal
+  // Pastikan nilai awal di-clamping agar tidak di luar rentang picker
+  double clampedInitialValue = initialValue.clamp(minValue, maxValue);
+
+  double _currentWholePart = clampedInitialValue.floorToDouble();
+  double _currentDecimalPart =
+      ((clampedInitialValue - _currentWholePart) * 10).roundToDouble();
+
+  // Membuat daftar angka untuk picker bagian bulat
+  final List<int> wholeNumbersList = List<int>.generate(
+    (maxValue.floor() -
+        minValue.floor() +
+        1), // Jumlah angka bulat dari min sampai max
+    (index) => minValue.floor() + index,
   );
-  final TextEditingController belakangController = TextEditingController(
-    text: ((initialValue - initialValue.floor()) * 100)
-        .round()
-        .toString()
-        .padLeft(1, '0'),
+  // Membuat daftar angka untuk picker bagian desimal (0-9)
+  final List<int> decimalNumbersList = List<int>.generate(10, (index) => index);
+
+  // Menginisialisasi controller untuk setiap picker
+  // Memastikan initialItem berada dalam rentang yang valid untuk list
+  FixedExtentScrollController wholePartController = FixedExtentScrollController(
+    initialItem: wholeNumbersList.isNotEmpty
+        ? wholeNumbersList.indexOf(_currentWholePart.toInt())
+        : 0, // Default ke 0 jika list kosong
+  );
+  FixedExtentScrollController decimalPartController =
+      FixedExtentScrollController(
+    initialItem: decimalNumbersList.isNotEmpty
+        ? decimalNumbersList.indexOf(_currentDecimalPart.toInt())
+        : 0, // Default ke 0 jika list kosong
   );
 
   await showDialog(
     context: context,
-    builder: (context) {
+    builder: (dialogContext) {
       return StatefulBuilder(
-        builder: (context, setState) {
+        builder: (stfContext, setState) {
+          // Helper untuk membuat ListWheelScrollView (sekarang INLINE)
+          Widget _buildNumberPickerWheel({
+            required FixedExtentScrollController controller,
+            required List<int> items,
+            required ValueChanged<int> onSelectedItemChanged,
+            required double itemHeight,
+            required double itemWidth,
+            required int selectedValue, // Nilai yang sedang dipilih
+            bool isDecimalPart = false, // True jika ini untuk bagian desimal
+          }) {
+            return Container(
+              width: itemWidth,
+              height: itemHeight * 3, // Tinggi yang menampilkan 3 item
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5), // Latar belakang abu-abu muda
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: AppColors.primary.withOpacity(0.3), width: 1),
+              ),
+              child: ListWheelScrollView.useDelegate(
+                controller: controller,
+                itemExtent: itemHeight,
+                perspective: 0.005,
+                diameterRatio: 1.5,
+                physics: const FixedExtentScrollPhysics(),
+                onSelectedItemChanged: onSelectedItemChanged,
+                childDelegate: ListWheelChildBuilderDelegate(
+                  builder: (context, index) {
+                    // context di sini adalah dari ListWheelScrollView
+                    if (index < 0 || index >= items.length) {
+                      return null;
+                    }
+                    final item = items[index];
+                    final bool isSelected = item == selectedValue;
+
+                    return Center(
+                      child: AnimatedDefaultTextStyle(
+                        style: TextStyle(
+                          fontSize: isSelected ? 26 : 20,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.darkGrey,
+                        ),
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        child: Text(
+                          isDecimalPart
+                              ? item.toString().padLeft(1, '0')
+                              : '$item',
+                        ),
+                      ),
+                    );
+                  },
+                  childCount: items.length,
+                ),
+              ),
+            );
+          }
+
           return AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
@@ -59,7 +145,22 @@ Future<void> showUpdateBeratDialog({
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _stylishNumberBox(controller: depanController),
+                      // Picker untuk bagian depan koma
+                      _buildNumberPickerWheel(
+                        controller: wholePartController,
+                        items: wholeNumbersList,
+                        onSelectedItemChanged: (index) {
+                          // newValue di sini adalah index
+                          setState(() {
+                            // PERBAIKAN DI SINI: Ambil nilai dari list menggunakan index
+                            _currentWholePart =
+                                wholeNumbersList[index].toDouble();
+                          });
+                        },
+                        itemHeight: 65,
+                        itemWidth: 80,
+                        selectedValue: _currentWholePart.toInt(),
+                      ),
                       const SizedBox(width: 6),
                       const Text(
                         ".",
@@ -70,11 +171,27 @@ Future<void> showUpdateBeratDialog({
                         ),
                       ),
                       const SizedBox(width: 6),
-                      _stylishNumberBox(controller: belakangController),
+                      // Picker untuk bagian belakang koma
+                      _buildNumberPickerWheel(
+                        controller: decimalPartController,
+                        items: decimalNumbersList,
+                        onSelectedItemChanged: (index) {
+                          // newValue di sini adalah index
+                          setState(() {
+                            // PERBAIKAN DI SINI: Ambil nilai dari list menggunakan index
+                            _currentDecimalPart =
+                                decimalNumbersList[index].toDouble();
+                          });
+                        },
+                        itemHeight: 65,
+                        itemWidth: 65,
+                        selectedValue: _currentDecimalPart.toInt(),
+                        isDecimalPart: true,
+                      ),
                       const SizedBox(width: 8),
-                      const Text(
-                        "kg",
-                        style: TextStyle(
+                      Text(
+                        unit,
+                        style: const TextStyle(
                           fontSize: 20,
                           color: AppColors.darkGrey,
                           fontWeight: FontWeight.w500,
@@ -84,7 +201,7 @@ Future<void> showUpdateBeratDialog({
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "Masukkan berat badan kamu",
+                    "Pilih ${title.toLowerCase()}",
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -98,7 +215,7 @@ Future<void> showUpdateBeratDialog({
             actionsAlignment: MainAxisAlignment.center,
             actions: [
               OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(stfContext).pop(),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: AppColors.primary, width: 1.2),
                   padding:
@@ -119,18 +236,24 @@ Future<void> showUpdateBeratDialog({
               const SizedBox(width: 12),
               ElevatedButton(
                 onPressed: () {
-                  final depan = int.tryParse(depanController.text) ?? 0;
-                  final belakang = int.tryParse(belakangController.text) ?? 0;
-                  final berat = depan + (belakang / 100);
+                  final double finalValue =
+                      _currentWholePart + (_currentDecimalPart / 10.0);
 
-                  if (berat >= minValue && berat <= maxValue) {
-                    onSave(berat);
-                    Navigator.of(context).pop();
+                  print('DIALOG SAVE DEBUG: finalValue: $finalValue');
+                  print('DIALOG SAVE DEBUG: minValue: $minValue');
+                  print('DIALOG SAVE DEBUG: maxValue: $maxValue');
+                  print('DIALOG SAVE DEBUG: unit: $unit');
+                  print(
+                      'DIALOG SAVE DEBUG: Kondisi validasi: ${finalValue >= minValue && finalValue <= maxValue}');
+
+                  if (finalValue >= minValue && finalValue <= maxValue) {
+                    onSave(finalValue);
+                    Navigator.of(stfContext).pop();
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(stfContext).showSnackBar(
                       SnackBar(
                         content: Text(
-                            'Berat harus antara ${minValue.toStringAsFixed(2)} dan ${maxValue.toStringAsFixed(2)} kg'),
+                            'Nilai harus antara ${minValue.toStringAsFixed(1)} dan ${maxValue.toStringAsFixed(1)} $unit'),
                         backgroundColor: Colors.redAccent,
                       ),
                     );
@@ -158,36 +281,5 @@ Future<void> showUpdateBeratDialog({
         },
       );
     },
-  );
-}
-
-Widget _stylishNumberBox({required TextEditingController controller}) {
-  return Container(
-    width: 65,
-    height: 65,
-    decoration: BoxDecoration(
-      color: const Color(0xFFF5F5F5),
-      borderRadius: BorderRadius.circular(14),
-      // ignore: deprecated_member_use
-      border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
-    ),
-    child: Center(
-      child: TextField(
-        controller: controller,
-        maxLength: 2,
-        keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.bold,
-          color: AppColors.primary,
-        ),
-        decoration: const InputDecoration(
-          counterText: '',
-          border: InputBorder.none,
-          isCollapsed: true,
-        ),
-      ),
-    ),
   );
 }
