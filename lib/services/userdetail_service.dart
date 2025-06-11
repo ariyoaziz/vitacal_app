@@ -148,6 +148,12 @@ class UserDetailService {
     }
   }
 
+  Future<Map<String, dynamic>> getProfileDataRaw() async {
+    final responseData = await _sendAuthenticatedRequest('profile',
+        method: 'GET'); // Memanggil endpoint /profile
+    return responseData; // Mengembalikan Map mentah
+  }
+
   Future<void> deleteUserDetail() async {
     await _sendAuthenticatedRequest('user-detail', method: 'DELETE');
   }

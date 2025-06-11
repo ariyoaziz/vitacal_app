@@ -96,7 +96,6 @@ class UserDetailModel extends Equatable {
     "menaikan_massa_tubuh": Tujuan.menaikanMassaTubuh,
   };
 
-
   static Tujuan _parseTujuan(String value) {
     // Clean the value: convert to lowercase, trim whitespace, replace spaces with underscores
     final cleanedValue = value.toLowerCase().trim().replaceAll(' ', '_');

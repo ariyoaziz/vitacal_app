@@ -1,11 +1,12 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:vitacal_app/screen/detail_user_input/detailuser_gender.dart';
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:vitacal_app/models/user_detail_form_data.dart';
 
 class DetailuserInputNama extends StatefulWidget {
-  // Terima user_id dari halaman sebelumnya (misal dari OtpRegistrasi)
-  final int userId; // userId adalah int di backend
+  final int userId;
 
   const DetailuserInputNama({super.key, required this.userId});
 
@@ -15,9 +16,8 @@ class DetailuserInputNama extends StatefulWidget {
 
 class _DetailuserInputNamaState extends State<DetailuserInputNama> {
   final TextEditingController _nameController = TextEditingController();
-  final GlobalKey<FormState> _formKey =
-      GlobalKey<FormState>(); // Kunci untuk form
-  final double _progressValue = 0.17; // Progres untuk langkah pertama (1/6)
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final double _progressValue = 0.17;
 
   @override
   void dispose() {
@@ -25,25 +25,56 @@ class _DetailuserInputNamaState extends State<DetailuserInputNama> {
     super.dispose();
   }
 
-  // Fungsi saat tombol "Lanjut" ditekan
+  // Fungsi saat tombol "Lanjut" ditekan - FUNGSI INI TIDAK DIUBAH
   void _onNextPressed() {
     if (_formKey.currentState!.validate()) {
-      // Validasi form
-      // Simpan data nama ke objek UserDetailFormData sementara
       final formData = UserDetailFormData(
-        userId: widget.userId, // Ambil userId dari widget
-        nama: _nameController.text.trim(), // Bersihkan spasi
+        userId: widget.userId,
+        nama: _nameController.text.trim(),
       );
 
-      // Navigasi ke layar berikutnya (DetailuserUsia) dengan membawa data
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              DetailuserGender(formData: formData), // Meneruskan data
+          builder: (context) => DetailuserGender(formData: formData),
         ),
       );
     }
+  }
+
+  // Widget Helper untuk Input Decoration
+  InputDecoration _buildInputDecoration({
+    required String labelText,
+    required String hintText,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      // PERBAIKAN: Menggunakan AppColors.mediumGrey untuk label dan hint
+      labelStyle: const TextStyle(color: AppColors.mediumGrey),
+      hintStyle: const TextStyle(color: AppColors.mediumGrey),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      enabledBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.0),
+        borderRadius: BorderRadius.circular(12), // Radius konsisten
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: AppColors.primary, width: 2.0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: Colors.red, width: 2.0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      suffixIcon: suffixIcon,
+      fillColor: Colors.white,
+      filled: true,
+    );
   }
 
   @override
@@ -56,80 +87,65 @@ class _DetailuserInputNamaState extends State<DetailuserInputNama> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.05,
-            vertical: screenHeight * 0.05,
+            horizontal: screenWidth * 0.08, // Konsisten dengan halaman auth
+            vertical: screenHeight * 0.05, // Spasi vertikal yang nyaman
           ),
           child: Column(
             children: [
               // Garis Progress
-              SizedBox(
-                width: screenWidth * 0.8,
-                child: LinearProgressIndicator(
-                  value: _progressValue,
-                  backgroundColor: Colors.grey[300],
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  minHeight: 10,
-                  borderRadius: BorderRadius.circular(5),
+              Align(
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: screenWidth * 0.8,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(5),
+                    child: LinearProgressIndicator(
+                      value: _progressValue,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.primary),
+                      minHeight: 10,
+                    ),
+                  ),
                 ),
               ),
-              // Expanded untuk menyesuaikan layout agar tombol tetap di bawah
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Form(
-                      // Gunakan Form untuk validasi input
                       key: _formKey,
                       child: Column(
                         children: [
                           // Judul
                           const Text(
                             "Masukan Nama Kamu",
+                            textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: 28, // Ukuran font judul konsisten
                               fontWeight: FontWeight.bold,
                               color: AppColors.darkGrey,
                             ),
                           ),
-                          const SizedBox(height: 11),
+                          const SizedBox(height: 12),
+                          // Deskripsi
                           const Text(
                             "Hai, Kami ingin mengenal Anda untuk menjadikan aplikasi VitaCal dipersonalisasi untuk Anda.",
+                            textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15, // Ukuran font deskripsi konsisten
                               color: AppColors.darkGrey,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 33),
+                          const SizedBox(height: 40),
                           // Input Nama
                           SizedBox(
-                            width: screenWidth * 0.85,
+                            width: double.infinity,
                             child: TextFormField(
                               controller: _nameController,
-                              decoration: InputDecoration(
-                                labelText: 'Nama',
-                                hintText: 'Nama Lengkap',
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                      color: AppColors.primary, width: 1),
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                      color: AppColors.primary, width: 1),
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                errorBorder: OutlineInputBorder(
-                                  borderSide: const BorderSide(
-                                      color: Colors.red, width: 1),
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                focusedErrorBorder: OutlineInputBorder(
-                                  borderSide: const BorderSide(
-                                      color: Colors.red, width: 2),
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
+                              decoration: _buildInputDecoration(
+                                labelText: 'Nama Lengkap',
+                                hintText: 'Masukkan nama lengkap kamu',
                               ),
                               keyboardType: TextInputType.name,
                               validator: (value) {
@@ -138,6 +154,8 @@ class _DetailuserInputNamaState extends State<DetailuserInputNama> {
                                 }
                                 return null;
                               },
+                              style: const TextStyle(
+                                  fontSize: 16, color: AppColors.darkGrey),
                             ),
                           ),
                         ],
@@ -148,11 +166,18 @@ class _DetailuserInputNamaState extends State<DetailuserInputNama> {
               ),
               // Tombol Lanjut
               SizedBox(
-                width: screenWidth * 0.85,
-                child: Ink(
+                width: double.infinity,
+                child: Container(
                   decoration: BoxDecoration(
                     gradient: AppColors.greenGradient,
                     borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
                   child: ElevatedButton(
                     onPressed: _onNextPressed,
@@ -162,14 +187,14 @@ class _DetailuserInputNamaState extends State<DetailuserInputNama> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       "Lanjut",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),

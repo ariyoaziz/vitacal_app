@@ -9,7 +9,7 @@ class BmiCard extends StatelessWidget {
 
   const BmiCard({super.key, required this.bmi});
 
-  // --- Fungsi getBmiStatus agar SAMA PERSIS dengan backend Flask ---
+  // Fungsi getBmiStatus agar SAMA PERSIS dengan backend Flask
   String getBmiStatus(double bmi) {
     if (bmi < 18.5)
       return "Berat badan kurang";
@@ -25,8 +25,7 @@ class BmiCard extends StatelessWidget {
       return "Obesitas kelas III"; // bmi >= 40.0
   }
 
-  // --- Fungsi getBmiColor agar sesuai dengan 6 status di atas ---
-  // Menggunakan gradasi warna untuk obesitas
+  // Fungsi getBmiColor agar sesuai dengan 6 status di atas
   Color getBmiColor(double bmi) {
     if (bmi < 18.5) {
       return Colors.orange.shade700; // Untuk "Berat badan kurang"
@@ -43,7 +42,6 @@ class BmiCard extends StatelessWidget {
       return Colors.red.shade900; // Untuk "Obesitas kelas III"
     }
   }
-  // --- AKHIR PERBAIKAN ---
 
   @override
   Widget build(BuildContext context) {
@@ -52,23 +50,28 @@ class BmiCard extends StatelessWidget {
 
     return Card(
       color: AppColors.screen,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)),
-      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             const Text(
-              "BMI (Kg/M2)",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              "Indeks Massa Tubuh (BMI)",
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.darkGrey),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+
+            // Bagian Gauge BMI
             SfRadialGauge(
               axes: <RadialAxis>[
                 RadialAxis(
                   minimum: 5,
                   maximum: 45,
-                  interval: 5, // Ticks tiap 5 satuan
+                  interval: 5,
                   minorTicksPerInterval: 4,
                   showLabels: true,
                   showTicks: true,
@@ -89,10 +92,9 @@ class BmiCard extends StatelessWidget {
                   ),
                   pointers: <GaugePointer>[
                     NeedlePointer(
-                      value: bmi.clamp(
-                          10.0, 35.0), // Clamp BMI value within gauge range
-                      needleColor: Colors.black, // Mengembalikan ke warna hitam
-                      needleLength: 0.6,
+                      value: bmi.clamp(5.0, 45.0),
+                      needleColor: Colors.black,
+                      needleLength: 0.7,
                       needleStartWidth: 0,
                       needleEndWidth: 10,
                       knobStyle: KnobStyle(
@@ -113,30 +115,61 @@ class BmiCard extends StatelessWidget {
                       animationDuration: 1000,
                     ),
                   ],
+                  // Teks di tengah gauge
+                  annotations: <GaugeAnnotation>[
+                    GaugeAnnotation(
+                      // --- PERBAIKAN DI SINI: Sesuaikan positionFactor untuk memindahkan ke bawah ---
+                      angle: 90,
+                      positionFactor:
+                          1, // Nilai yang lebih besar akan memindahkan ke bawah (0.1 adalah paling tengah)
+                      widget: Column(
+                        mainAxisAlignment: MainAxisAlignment
+                            .center, // MainAxisAlignment.center tetap bagus
+                        children: [
+                          // Tambahkan teks "BMI Kamu" di sini
+                          const Text(
+                            "BMI Kamu",
+                            style: TextStyle(
+                                fontSize: 18,
+                                color:
+                                    AppColors.darkGrey), // Sesuaikan gaya teks
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            bmi.toStringAsFixed(1),
+                            style: const TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.darkGrey),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            status,
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: color,
+                                fontWeight: FontWeight.w600),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const Text("BMI Kamu", style: TextStyle(fontSize: 18)),
-            Text(
-              bmi.toStringAsFixed(1), // Menampilkan BMI dengan 1 desimal
-              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              status, // Teks status BMI
-              style: TextStyle(
-                  fontSize: 16, color: color), // Menggunakan warna yang sesuai
-            ),
+            const SizedBox(height: 33),
+
+            Divider(height: 1, color: Colors.grey[300]),
             const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 12),
-            _buildLegend() // Membangun legenda
+
+            _buildLegend(),
           ],
         ),
       ),
     );
   }
 
-  // --- Helper method untuk membangun legenda BMI sesuai backend ---
   Widget _buildLegend() {
     return Column(
       children: [
@@ -151,7 +184,6 @@ class BmiCard extends StatelessWidget {
   }
 }
 
-// Widget untuk satu baris legenda (tidak berubah)
 class _LegendRow extends StatelessWidget {
   final String label;
   final String range;
@@ -162,17 +194,20 @@ class _LegendRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Icon(Icons.circle, size: 14, color: color),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(label,
-                style: const TextStyle(fontSize: 15, color: Colors.black87)),
+                style: const TextStyle(fontSize: 16, color: Colors.black87)),
           ),
           Text(range,
-              style: const TextStyle(fontSize: 15, color: Colors.black87)),
+              style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500)),
         ],
       ),
     );

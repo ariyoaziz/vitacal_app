@@ -1,4 +1,7 @@
+// ignore_for_file: deprecated_member_use, sized_box_for_whitespace
+
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vitacal_app/screen/detail_user_input/detailuser_aktivitas.dart';
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:vitacal_app/models/user_detail_form_data.dart';
@@ -76,35 +79,47 @@ class _DetailuserBeratDanTinggiState extends State<DetailuserBeratDanTinggi> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.05,
-            vertical: screenHeight * 0.05,
+            horizontal: screenWidth * 0.08, // Konsisten dengan halaman auth
+            vertical: screenHeight * 0.05, // Spasi vertikal yang nyaman
           ),
           child: Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Ink(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.primary, width: 0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: AppColors.primary),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: AppColors.primary.withOpacity(0.5),
+                            width: 1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SvgPicture.asset(
+                        'assets/icons/arrow.svg',
+                        colorFilter: const ColorFilter.mode(
+                            AppColors.primary, BlendMode.srcIn),
+                        height: 20,
+                        width: 20,
+                      ),
                     ),
                   ),
                   SizedBox(
-                    width: screenWidth * 0.73,
-                    child: LinearProgressIndicator(
-                      value: _progressValue,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.primary),
-                      minHeight: 10,
+                    width: screenWidth * 0.65,
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(5),
+                      child: LinearProgressIndicator(
+                        value: _progressValue,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppColors.primary),
+                        minHeight: 10,
+                      ),
                     ),
                   ),
                 ],
@@ -117,22 +132,23 @@ class _DetailuserBeratDanTinggiState extends State<DetailuserBeratDanTinggi> {
                       children: [
                         const Text(
                           "Berapa Berat dan Tinggi Badanmu?",
+                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: AppColors.darkGrey,
                           ),
                         ),
-                        const SizedBox(height: 11),
+                        const SizedBox(height: 12),
                         const Text(
                           "Kami ingin mengenal Anda lebih baik untuk menjadikan aplikasi VitaCal dipersonalisasi.",
+                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             color: AppColors.darkGrey,
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 33),
+                        const SizedBox(height: 40),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -177,11 +193,18 @@ class _DetailuserBeratDanTinggiState extends State<DetailuserBeratDanTinggi> {
                 ),
               ),
               SizedBox(
-                width: screenWidth * 0.85,
-                child: Ink(
+                width: double.infinity,
+                child: Container(
                   decoration: BoxDecoration(
                     gradient: AppColors.greenGradient,
                     borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
                   child: ElevatedButton(
                     onPressed: _onNextPressed,
@@ -191,14 +214,14 @@ class _DetailuserBeratDanTinggiState extends State<DetailuserBeratDanTinggi> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       "Lanjut",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -216,7 +239,7 @@ class _DetailuserBeratDanTinggiState extends State<DetailuserBeratDanTinggi> {
     required BuildContext context,
     required String label,
     required String unit,
-    required double value,
+    required double value, // Nilai saat ini (berat/tinggi)
     required List<int> list,
     required FixedExtentScrollController controller,
     required ValueChanged<int> onSelectedItemChanged,
@@ -233,15 +256,10 @@ class _DetailuserBeratDanTinggiState extends State<DetailuserBeratDanTinggi> {
             color: AppColors.darkGrey,
           ),
         ),
-        const SizedBox(height: 21),
+        const SizedBox(height: 21), // Spasi setelah label
         Container(
           width: itemWidth,
           height: itemHeight * 3, // Tinggi yang menampilkan 3 item
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(21), // Sudut membulat
-
-            color: AppColors.screen, // Latar belakang picker yang bersih
-          ),
           child: ListWheelScrollView.useDelegate(
             controller: controller,
             itemExtent: itemHeight,
@@ -256,40 +274,45 @@ class _DetailuserBeratDanTinggiState extends State<DetailuserBeratDanTinggi> {
                 }
                 final item = list[index];
                 // Item yang dipilih adalah item yang sama dengan nilai state
-                final bool isSelected = item == value.toInt();
+                // Menggunakan toleransi kecil karena 'value' adalah double dan 'item' adalah int
+                final bool isSelected = (item.toDouble() - value).abs() < 0.01;
 
                 return Center(
                   child: AnimatedContainer(
-                    // Menggunakan AnimatedContainer untuk transisi background
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeInOut,
-                    width: isSelected ? itemWidth * 0.8 : itemWidth * 0.7,
-                    height: isSelected ? itemHeight * 0.8 : itemHeight * 0.7,
+                    // Ukuran background highlight saat dipilih
+                    width: isSelected ? itemWidth * 0.9 : itemWidth * 0.8,
+                    height: isSelected ? itemHeight * 0.9 : itemHeight * 0.8,
                     decoration: BoxDecoration(
+                      // Background saat terpilih diubah menjadi AppColors.primary.withOpacity(0.1)
                       color: isSelected
-                          // ignore: deprecated_member_use
                           ? AppColors.primary.withOpacity(0.1)
-                          : Colors.transparent, // Highlight background samar
-                      borderRadius: BorderRadius.circular(
-                          10), // Sudut bulat untuk highlight
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      // Border saat terpilih
                       border: isSelected
                           ? Border.all(color: AppColors.primary, width: 1.5)
-                          : null, // Border saat dipilih
+                          : null, // Tanpa border saat tidak dipilih
                     ),
                     alignment: Alignment.center,
                     child: AnimatedDefaultTextStyle(
-                      // Untuk animasi perubahan teks
+                      // Gaya teks item picker
                       style: TextStyle(
-                        fontSize: isSelected ? 21 : 16,
+                        fontSize: isSelected
+                            ? 21
+                            : 16, // Ukuran font item picker (21 saat dipilih, 16 saat tidak)
                         fontWeight:
                             isSelected ? FontWeight.bold : FontWeight.normal,
-                        color:
-                            isSelected ? AppColors.primary : AppColors.darkGrey,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.darkGrey, // Warna teks
                       ),
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeInOut,
                       child: Text(
-                        '$item $unit', // Tampilkan nilai dan unit (misal "60 kg")
+                        // Tampilkan nilai dan unit
+                        '$item $unit', // Tampilkan nilai dan unit (misal "60 kg" atau "160 cm")
                       ),
                     ),
                   ),

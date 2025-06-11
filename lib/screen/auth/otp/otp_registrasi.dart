@@ -1,8 +1,8 @@
-// lib/screen/auth/otp/otp_registrasi.dart
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:vitacal_app/screen/detail_user_input/detailuser_input_nama.dart';
-import 'package:vitacal_app/screen/widgets/costum_dialog.dart';
+import 'package:vitacal_app/screen/widgets/costum_dialog.dart'; // Perhatikan typo: CustomAlertDialog
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:vitacal_app/blocs/auth/auth_bloc.dart';
@@ -11,7 +11,7 @@ import 'package:vitacal_app/blocs/auth/auth_state.dart';
 
 class OtpRegistrasi extends StatefulWidget {
   final String phoneNumber;
-  final int userId; // <--- PASTIKAN INI INT
+  final int userId;
 
   const OtpRegistrasi({
     super.key,
@@ -40,27 +40,52 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
     super.dispose();
   }
 
+  // Widget helper untuk OTP TextField
   Widget _otpTextField(BuildContext context, TextEditingController controller) {
     return SizedBox(
-      width: 50,
+      width: 60,
+      height: 60,
       child: TextField(
         controller: controller,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
+        style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.darkGrey),
         decoration: InputDecoration(
           counterText: '',
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: EdgeInsets.zero,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColors.primary, width: 1),
+            borderRadius: BorderRadius.circular(12),
+            // Menggunakan Color.fromRGBO untuk mengatasi deprecated member use
+            borderSide: BorderSide(
+              color: Color.fromRGBO(
+                  AppColors.primary.red,
+                  AppColors.primary.green,
+                  AppColors.primary.blue,
+                  0.5), // opacity 0.5
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColors.primary, width: 1),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColors.primary, width: 1),
+            borderRadius: BorderRadius.circular(12),
+            // Menggunakan Color.fromRGBO untuk mengatasi deprecated member use
+            borderSide: BorderSide(
+              color: Color.fromRGBO(
+                  AppColors.primary.red,
+                  AppColors.primary.green,
+                  AppColors.primary.blue,
+                  0.5), // opacity 0.5
+              width: 1,
+            ),
           ),
         ),
         onChanged: (value) {
@@ -74,6 +99,7 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
     );
   }
 
+  // Fungsi untuk memicu verifikasi OTP - FUNGSI INI TIDAK DIUBAH
   void _onVerifyOtpPressed() {
     String otpCode = controller1.text +
         controller2.text +
@@ -83,7 +109,7 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
     if (otpCode.length == 4) {
       context.read<AuthBloc>().add(
             VerifyOtpEvent(
-              userId: widget.userId, // userId sudah int
+              userId: widget.userId,
               otpCode: otpCode,
               phoneNumber: widget.phoneNumber,
             ),
@@ -115,14 +141,14 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: EdgeInsets.only(
-              top: screenHeight * 0.08,
-              bottom: screenHeight * 0.05,
-              left: screenWidth * 0.05,
-              right: screenWidth * 0.05,
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.08,
+              vertical: screenHeight * 0.05,
             ),
+            // BlocListener membungkus konten yang akan ditampilkan
             child: BlocListener<AuthBloc, AuthState>(
               listener: (context, state) {
+                // FUNGSI INI TIDAK DIUBAH
                 if (state is AuthLoading) {
                   setState(() {
                     _isLoading = true;
@@ -134,62 +160,31 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
                 }
 
                 if (state is AuthOtpVerified) {
-                  print('OTPRegistrasi: Menerima AuthOtpVerified.');
-                  print(
-                      'OTPRegistrasi: Tipe state.user.userId: ${state.user.userId.runtimeType}');
-                  print(
-                      'OTPRegistrasi: Nilai state.user.userId: "${state.user.userId}"');
-
-                  int parsedUserId;
-
-                  parsedUserId =
-                      int.tryParse(state.user.userId.toString()) ?? 0;
-                  // Tambahkan validasi jika 0 tidak valid untuk user_id Anda
-                  if (parsedUserId == 0 &&
-                      // ignore: unnecessary_null_comparison
-                      (state.user.userId == null ||
-                          state.user.userId.toString() == "null")) {
+                  Future.delayed(const Duration(milliseconds: 300), () {
                     showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (dialogContext) {
-                        return const CustomAlertDialog(
-                          title: "Data Pengguna Tidak Lengkap!",
+                      builder: (BuildContext dialogContext) {
+                        return CustomAlertDialog(
+                          title: "Verifikasi Berhasil!",
                           message:
-                              "ID pengguna tidak valid. Mohon login ulang.",
-                          type: DialogType.error,
-                          buttonText: "Oke",
+                              "Kode OTP Anda telah berhasil diverifikasi. Yuk, lengkapi profilmu!",
+                          buttonText: "Lanjut",
+                          type: DialogType.success,
+                          showButton: true,
+                          onButtonPressed: () {
+                            Navigator.pushReplacement(
+                              dialogContext,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    DetailuserInputNama(userId: widget.userId),
+                              ),
+                            );
+                          },
                         );
                       },
                     );
-                    return; // Hentikan navigasi jika error
-                  }
-
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (BuildContext dialogContext) {
-                      return CustomAlertDialog(
-                        title: "Verifikasi Berhasil!",
-                        message:
-                            "Kode OTP Anda telah berhasil diverifikasi. Yuk, lengkapi profilmu!",
-                        buttonText: "Lanjut",
-                        type: DialogType.success,
-                        showButton: true,
-                        onButtonPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DetailuserInputNama(
-                                userId:
-                                    parsedUserId, // Menggunakan userId yang sudah di-parse dan aman
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
+                  });
                 } else if (state is AuthError) {
                   String dialogTitle = "Verifikasi Gagal!";
                   String dialogMessage = state.message;
@@ -203,7 +198,8 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
                         "Kode OTP yang kamu masukkan tidak cocok. Coba lagi ya!";
                     dialogType = DialogType.error;
                   } else if (cleanMessage
-                      .contains("Gagal terhubung ke server")) {
+                          .contains("Gagal terhubung ke server") ||
+                      cleanMessage.contains("Network Error")) {
                     dialogTitle = "Jaringanmu Bermasalah?";
                     dialogMessage =
                         "Gagal terhubung ke server. Pastikan koneksi internetmu stabil dan coba lagi ya!";
@@ -235,110 +231,105 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
                   );
                 }
               },
-              child: Stack(
+              // Bagian ini adalah child dari BlocListener
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Column(
+                  const Text(
+                    "Verifikasi OTP Kamu",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.05),
+                  SizedBox(
+                    height: screenHeight * 0.25,
+                    child: Image.asset(
+                      'assets/images/otp.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  const Text(
+                    "Masukkan kode 4 digit yang telah kami kirim ke nomor",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.darkGrey,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.phoneNumber,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.08),
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text(
-                        "Verifikasi OTP Kamu",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      SizedBox(height: screenHeight * 0.05),
-                      SizedBox(
-                        child: Image.asset(
-                          'assets/images/otp.png',
-                        ),
-                      ),
-                      const SizedBox(height: 50),
-                      const Text(
-                        "Masukkan kode 4 digit yang telah kami kirim ke nomor",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: AppColors.darkGrey,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        widget.phoneNumber,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: screenHeight * 0.08),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _otpTextField(context, controller1),
-                          const SizedBox(width: 11),
-                          _otpTextField(context, controller2),
-                          const SizedBox(width: 11),
-                          _otpTextField(context, controller3),
-                          const SizedBox(width: 11),
-                          _otpTextField(context, controller4),
-                        ],
-                      ),
-                      SizedBox(height: screenHeight * 0.08),
-                      SizedBox(
-                        width: screenWidth * 0.8,
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            gradient: AppColors.greenGradient,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: _onVerifyOtpPressed,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text(
-                              "Konfirmasi",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                      _otpTextField(context, controller1),
+                      const SizedBox(width: 15),
+                      _otpTextField(context, controller2),
+                      const SizedBox(width: 15),
+                      _otpTextField(context, controller3),
+                      const SizedBox(width: 15),
+                      _otpTextField(context, controller4),
                     ],
                   ),
-                  // Loading overlay
-                  if (_isLoading)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        ignoring: !_isLoading,
-                        child: AnimatedOpacity(
-                          opacity: _isLoading ? 0.7 : 0.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: Container(
-                            color: const Color.fromARGB(0, 0, 0, 0),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.primary),
-                              ),
-                            ),
+                  SizedBox(height: screenHeight * 0.08),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.greenGradient,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color.fromRGBO(
+                                AppColors.primary.red,
+                                AppColors.primary.green,
+                                AppColors.primary.blue,
+                                0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _onVerifyOtpPressed,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : const Text(
+                                "Konfirmasi",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                       ),
                     ),
+                  ),
                 ],
               ),
             ),

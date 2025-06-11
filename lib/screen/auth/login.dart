@@ -275,7 +275,7 @@ class _LoginState extends State<Login> {
                               ),
                               SizedBox(height: screenHeight * 0.08),
                               SizedBox(
-                                width: screenWidth * 0.8,
+                                width: double.infinity,
                                 child: TextFormField(
                                   controller: _identifierController,
                                   decoration: InputDecoration(
@@ -322,7 +322,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 33),
                               SizedBox(
-                                width: screenWidth * 0.8,
+                                width: double.infinity,
                                 child: TextFormField(
                                   controller: _passwordController,
                                   obscureText: !_isPasswordVisible,
@@ -405,13 +405,22 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 33),
                               SizedBox(
-                                width: screenWidth * 0.8,
-                                child: Ink(
+                                width: double.infinity,
+                                child: Container(
                                   decoration: BoxDecoration(
                                     gradient: AppColors.greenGradient,
                                     borderRadius: BorderRadius.circular(30),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            AppColors.primary.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
                                   ),
                                   child: ElevatedButton(
+                                    // PERBAIKAN: Padding vertikal disesuaikan agar sama dengan Get Started
                                     onPressed: _onLoginPressed,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.transparent,
@@ -420,20 +429,18 @@ class _LoginState extends State<Login> {
                                         borderRadius: BorderRadius.circular(30),
                                       ),
                                       padding: const EdgeInsets.symmetric(
-                                          vertical: 14),
+                                          vertical:
+                                              16), // Padding vertikal disesuaikan
                                     ),
                                     child: _isLoading
-                                        ? CircularProgressIndicator(
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
-                                          )
+                                        ? const CircularProgressIndicator(
+                                            color: Colors.white)
                                         : const Text(
-                                            "Login",
+                                            "Daftar Sekarang",
                                             style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                   ),

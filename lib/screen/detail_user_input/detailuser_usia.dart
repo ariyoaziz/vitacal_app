@@ -1,9 +1,9 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vitacal_app/models/user_detail_form_data.dart';
 import 'package:vitacal_app/screen/detail_user_input/detailuser_berat_dan_tinggi.dart';
-
 import 'package:vitacal_app/themes/colors.dart';
 
 class DetailuserUsia extends StatefulWidget {
@@ -146,7 +146,7 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-    double itemHeight = screenHeight * 0.08;
+    double itemHeight = screenHeight * 0.07;
     double pickerWidth = screenWidth * 0.28;
 
     return Scaffold(
@@ -154,7 +154,7 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.05,
+            horizontal: screenWidth * 0.08,
             vertical: screenHeight * 0.05,
           ),
           child: Column(
@@ -162,27 +162,39 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Ink(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.primary, width: 0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: AppColors.primary),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: AppColors.primary.withOpacity(0.5),
+                            width: 1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SvgPicture.asset(
+                        'assets/icons/arrow.svg',
+                        colorFilter: const ColorFilter.mode(
+                            AppColors.primary, BlendMode.srcIn),
+                        height: 20,
+                        width: 20,
+                      ),
                     ),
                   ),
                   SizedBox(
-                    width: screenWidth * 0.73,
-                    child: LinearProgressIndicator(
-                      value: _progressValue,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.primary),
-                      minHeight: 10,
+                    width: screenWidth * 0.65,
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(5),
+                      child: LinearProgressIndicator(
+                        value: _progressValue,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppColors.primary),
+                        minHeight: 10,
+                      ),
                     ),
                   ),
                 ],
@@ -193,35 +205,27 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                   children: [
                     Column(
                       children: [
-                        Text(
+                        const Text(
                           "Berapa Usia Anda?",
+                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: AppColors.darkGrey,
                           ),
                         ),
-                        if (_usiaErrorMessage != null)
-                          Padding(
-                            padding:
-                                const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                            child: Text(
-                              _usiaErrorMessage!,
-                              style: const TextStyle(
-                                  color: Colors.red, fontSize: 13),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        const SizedBox(height: 11),
-                        Text(
+                        const SizedBox(height: 12),
+                        const Text(
                           "Kami ingin mengenal Anda lebih baik untuk menjadikan aplikasi VitaCal dipersonalisasi.",
+                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: screenWidth * 0.04,
+                            fontSize: 15,
                             color: AppColors.darkGrey,
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 33),
+                        const SizedBox(height: 40),
+
+                        // Date Pickers
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -233,6 +237,7 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                               onSelectedItemChanged: (index) {
                                 setState(() {
                                   _selectedTanggal = tanggalList[index];
+                                  _usiaErrorMessage = null;
                                 });
                               },
                               itemHeight: itemHeight,
@@ -246,6 +251,7 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                               onSelectedItemChanged: (index) {
                                 setState(() {
                                   _selectedBulanIndex = index;
+                                  _usiaErrorMessage = null;
                                 });
                               },
                               itemHeight: itemHeight,
@@ -259,6 +265,7 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                               onSelectedItemChanged: (index) {
                                 setState(() {
                                   _selectedTahun = tahunList[index];
+                                  _usiaErrorMessage = null;
                                 });
                               },
                               itemHeight: itemHeight,
@@ -266,17 +273,35 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                             ),
                           ],
                         ),
+
+                        if (_usiaErrorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12.0),
+                            child: Text(
+                              _usiaErrorMessage!,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 13),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                       ],
                     ),
                   ],
                 ),
               ),
               SizedBox(
-                width: screenWidth * 0.85,
-                child: Ink(
+                width: double.infinity,
+                child: Container(
                   decoration: BoxDecoration(
                     gradient: AppColors.greenGradient,
                     borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
                   child: ElevatedButton(
                     onPressed: _onNextPressed,
@@ -286,14 +311,14 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       "Lanjut",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -325,16 +350,15 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
             color: AppColors.darkGrey,
           ),
         ),
-        const SizedBox(height: 33),
+        const SizedBox(height: 15),
         Container(
           width: pickerWidth,
           height: itemHeight * 3,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(21),
-            // Hapus border standar yang kaku
-            // border: Border.all(color: AppColors.primary, width: 1), // Ini akan dihapus
-
-            color: AppColors.screen, // Latar belakang picker yang bersih
+            borderRadius: BorderRadius.circular(12),
+            color: AppColors.screen,
+            // PERBAIKAN: Menghilangkan border di sini
+            // border: Border.all(color: AppColors.mediumGrey.withOpacity(0.5), width: 1),
           ),
           child: ListWheelScrollView.useDelegate(
             controller: controller,
@@ -359,24 +383,18 @@ class _DetailuserUsiaState extends State<DetailuserUsia> {
 
                 return Center(
                   child: AnimatedContainer(
-                    // Menggunakan AnimatedContainer untuk transisi background
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeInOut,
-                    width: isSelected
-                        ? pickerWidth * 0.8
-                        : pickerWidth * 0.7, // Sedikit melebar saat dipilih
-                    height: isSelected
-                        ? itemHeight * 0.8
-                        : itemHeight * 0.7, // Sedikit membesar saat dipilih
+                    width: isSelected ? pickerWidth * 0.9 : pickerWidth * 0.8,
+                    height: isSelected ? itemHeight * 0.9 : itemHeight * 0.8,
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppColors.primary.withOpacity(0.1)
-                          : Colors.transparent, // Highlight background samar
-                      borderRadius: BorderRadius.circular(
-                          10), // Sudut bulat untuk highlight
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
                       border: isSelected
                           ? Border.all(color: AppColors.primary, width: 1.5)
-                          : null, // Border saat dipilih
+                          : null,
                     ),
                     alignment: Alignment.center,
                     child: AnimatedDefaultTextStyle(

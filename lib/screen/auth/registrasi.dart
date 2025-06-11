@@ -245,7 +245,7 @@ class _RegistrasiState extends State<Registrasi> {
                               ),
                               SizedBox(height: screenHeight * 0.05),
                               SizedBox(
-                                width: screenWidth * 0.8,
+                                width: double.infinity,
                                 child: TextFormField(
                                   controller: _usernameController,
                                   decoration: InputDecoration(
@@ -291,7 +291,7 @@ class _RegistrasiState extends State<Registrasi> {
                               ),
                               const SizedBox(height: 33),
                               SizedBox(
-                                width: screenWidth * 0.8,
+                                width: double.infinity,
                                 child: TextFormField(
                                   controller: _emailController,
                                   decoration: InputDecoration(
@@ -341,7 +341,7 @@ class _RegistrasiState extends State<Registrasi> {
                               ),
                               const SizedBox(height: 33),
                               SizedBox(
-                                width: screenWidth * 0.8,
+                                width: double.infinity,
                                 child: TextFormField(
                                   controller: _phoneController,
                                   decoration: InputDecoration(
@@ -387,7 +387,7 @@ class _RegistrasiState extends State<Registrasi> {
                               ),
                               const SizedBox(height: 33),
                               SizedBox(
-                                width: screenWidth * 0.8,
+                                width: double.infinity,
                                 child: TextFormField(
                                   controller: _passwordController,
                                   obscureText: !_isPasswordVisible,
@@ -450,7 +450,7 @@ class _RegistrasiState extends State<Registrasi> {
                               ),
                               const SizedBox(height: 33),
                               SizedBox(
-                                width: screenWidth * 0.8,
+                                width: double.infinity,
                                 child: TextFormField(
                                   controller: _confirmPasswordController,
                                   obscureText: !_isConfirmPasswordVisible,
@@ -578,14 +578,24 @@ class _RegistrasiState extends State<Registrasi> {
                               ),
                               SizedBox(height: screenHeight * 0.05),
                               SizedBox(
-                                width: screenWidth * 0.8,
-                                child: Ink(
+                                width: double.infinity,
+                                child: Container(
                                   decoration: BoxDecoration(
                                     gradient: AppColors.greenGradient,
                                     borderRadius: BorderRadius.circular(30),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            AppColors.primary.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
                                   ),
                                   child: ElevatedButton(
-                                    onPressed: _onRegisterPressed,
+                                    // PERBAIKAN: Padding vertikal disesuaikan agar sama dengan Get Started
+                                    onPressed:
+                                        _isLoading ? null : _onRegisterPressed,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.transparent,
                                       shadowColor: Colors.transparent,
@@ -593,16 +603,20 @@ class _RegistrasiState extends State<Registrasi> {
                                         borderRadius: BorderRadius.circular(30),
                                       ),
                                       padding: const EdgeInsets.symmetric(
-                                          vertical: 14),
+                                          vertical:
+                                              16), // Padding vertikal disesuaikan
                                     ),
-                                    child: const Text(
-                                      "Daftar Sekarang",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                    child: _isLoading
+                                        ? const CircularProgressIndicator(
+                                            color: Colors.white)
+                                        : const Text(
+                                            "Daftar Sekarang",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ),

@@ -1,9 +1,11 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vitacal_app/screen/detail_user_input/detailuser_usia.dart';
 import 'package:vitacal_app/themes/colors.dart';
-import 'package:vitacal_app/models/user_detail_form_data.dart'; // Impor model data form
-import 'package:vitacal_app/models/enums.dart'; // Impor enum JenisKelamin
+import 'package:vitacal_app/models/user_detail_form_data.dart';
+import 'package:vitacal_app/models/enums.dart';
 
 class DetailuserGender extends StatefulWidget {
   final UserDetailFormData formData;
@@ -19,7 +21,7 @@ class _DetailuserGenderState extends State<DetailuserGender> {
   JenisKelamin? _selectedGender;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  String? _genderErrorMessage; // Variabel untuk pesan error validasi kustom
+  String? _genderErrorMessage;
 
   @override
   void initState() {
@@ -29,16 +31,14 @@ class _DetailuserGenderState extends State<DetailuserGender> {
 
   void _onNextPressed() {
     setState(() {
-      _genderErrorMessage =
-          null; // Reset pesan error setiap kali tombol ditekan
+      _genderErrorMessage = null;
     });
 
     if (_selectedGender == null) {
       setState(() {
-        _genderErrorMessage =
-            "Eits, jangan lupa pilih jenis kelaminmu ya!"; // Pesan error yang lebih ramah
+        _genderErrorMessage = "Eits, jangan lupa pilih jenis kelaminmu ya!";
       });
-      return; // Hentikan navigasi jika validasi gagal
+      return;
     }
 
     final updatedFormData = widget.formData.copyWith(
@@ -63,214 +63,135 @@ class _DetailuserGenderState extends State<DetailuserGender> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.05,
+            horizontal: screenWidth * 0.08,
             vertical: screenHeight * 0.05,
           ),
           child: Column(
             children: [
-              // Baris untuk Progress dan Tombol Back
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Tombol Back
-                  Ink(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.primary, width: 0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: IconButton(
-                      icon: SvgPicture.asset(
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: AppColors.primary.withOpacity(0.5),
+                            width: 1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SvgPicture.asset(
                         'assets/icons/arrow.svg',
                         colorFilter: const ColorFilter.mode(
                             AppColors.primary, BlendMode.srcIn),
-                        height: 15,
-                        width: 15,
+                        height: 20,
+                        width: 20,
                       ),
-                      onPressed: () {
-                        Navigator.pop(context); // Kembali ke halaman sebelumnya
-                      },
                     ),
                   ),
-
-                  // Garis Progress
                   SizedBox(
-                    width: screenWidth * 0.73,
-                    child: LinearProgressIndicator(
-                      value: _progressValue,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.primary),
-                      minHeight: 10,
+                    width: screenWidth * 0.65,
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(5),
+                      child: LinearProgressIndicator(
+                        value: _progressValue,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppColors.primary),
+                        minHeight: 10,
+                      ),
                     ),
                   ),
                 ],
               ),
-
-              // Expanded untuk menyesuaikan layout agar button tetap di bawah
               Expanded(
                 child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Column(
-                        children: [
-                          // Judul
-                          const Text(
-                            "Pilih Gender Kamu",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.darkGrey,
-                            ),
-                          ),
-                          // --- PERBAIKAN: Penempatan Pesan Error di sini ---
-                          if (_genderErrorMessage !=
-                              null) // Tampilkan hanya jika ada pesan error
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  top: 8.0,
-                                  bottom:
-                                      8.0), // Padding atas dan bawah untuk error
-                              child: Text(
-                                _genderErrorMessage!,
-                                style: const TextStyle(
-                                    color: Colors.red, fontSize: 13),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          // --- AKHIR PERBAIKAN ---
-                          const SizedBox(height: 11),
-                          const Text(
-                            "Kami ingin mengenal Anda lebih baik untuk menjadikan aplikasi VitaCal dipersonalisasi.",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppColors.darkGrey,
-                            ),
+                      const Text(
+                        "Pilih Gender Kamu",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkGrey,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "Kami ingin mengenal Anda lebih baik untuk menjadikan aplikasi VitaCal dipersonalisasi.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: AppColors.darkGrey,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+
+                      // Pilihan Gender (Laki-laki)
+                      _buildGenderOption(
+                        context,
+                        label: "Laki-laki",
+                        gender: JenisKelamin.lakiLaki,
+                        icon: Icons.male,
+                        isSelected: _selectedGender == JenisKelamin.lakiLaki,
+                        onTap: () {
+                          setState(() {
+                            _selectedGender = JenisKelamin.lakiLaki;
+                            _genderErrorMessage = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Pilihan Gender (Perempuan)
+                      _buildGenderOption(
+                        context,
+                        label: "Perempuan",
+                        gender: JenisKelamin.perempuan,
+                        icon: Icons.female,
+                        isSelected: _selectedGender == JenisKelamin.perempuan,
+                        onTap: () {
+                          setState(() {
+                            _selectedGender = JenisKelamin.perempuan;
+                            _genderErrorMessage = null;
+                          });
+                        },
+                      ),
+
+                      if (_genderErrorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12.0),
+                          child: Text(
+                            _genderErrorMessage!,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 13),
                             textAlign: TextAlign.center,
                           ),
-
-                          const SizedBox(height: 33),
-
-                          // Pilihan Gender dengan Card
-                          Column(
-                            children: [
-                              // Laki-laki Option
-                              SizedBox(
-                                width: screenWidth * 0.85,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedGender = JenisKelamin.lakiLaki;
-                                      _genderErrorMessage =
-                                          null; // Hapus error saat memilih
-                                    });
-                                  },
-                                  child: Card(
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(21),
-                                      side: _selectedGender ==
-                                                  JenisKelamin.lakiLaki &&
-                                              _genderErrorMessage != null
-                                          ? const BorderSide(
-                                              color: Colors.red, width: 2)
-                                          : BorderSide.none,
-                                    ),
-                                    color:
-                                        _selectedGender == JenisKelamin.lakiLaki
-                                            ? const Color(0xFFF1F0E9)
-                                            : Colors.white,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 15, horizontal: 15),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.male,
-                                            color: AppColors.primary,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          const Text(
-                                            "Laki-laki",
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 15),
-                              // Perempuan Option
-                              SizedBox(
-                                width: screenWidth * 0.85,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedGender = JenisKelamin.perempuan;
-                                      _genderErrorMessage =
-                                          null; // Hapus error saat memilih
-                                    });
-                                  },
-                                  child: Card(
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(21),
-                                      side: _selectedGender ==
-                                                  JenisKelamin.perempuan &&
-                                              _genderErrorMessage != null
-                                          ? const BorderSide(
-                                              color: Colors.red, width: 2)
-                                          : BorderSide.none,
-                                    ),
-                                    color: _selectedGender ==
-                                            JenisKelamin.perempuan
-                                        ? const Color(0xFFF1F0E9)
-                                        : Colors.white,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 15, horizontal: 15),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.female,
-                                            color: AppColors.primary,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          const Text(
-                                            "Perempuan",
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                        ),
                     ],
                   ),
                 ),
               ),
-
-              // Tombol Lanjut
               SizedBox(
-                width: screenWidth * 0.85,
-                child: Ink(
+                width: double.infinity,
+                child: Container(
                   decoration: BoxDecoration(
                     gradient: AppColors.greenGradient,
                     borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
                   child: ElevatedButton(
                     onPressed: _onNextPressed,
@@ -280,17 +201,64 @@ class _DetailuserGenderState extends State<DetailuserGender> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       "Lanjut",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Widget helper untuk Pilihan Gender (Laki-laki/Perempuan)
+  Widget _buildGenderOption(
+    BuildContext context, {
+    required String label,
+    required JenisKelamin gender,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(21),
+      child: Card(
+        elevation: 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(21),
+          side: isSelected
+              ? const BorderSide(color: AppColors.primary, width: 2)
+              : BorderSide(color: Colors.grey.withOpacity(0.3), width: 1),
+        ),
+        // PERBAIKAN: Warna background saat terpilih agar sama dengan picker usia
+        color: isSelected ? AppColors.lightPrimary : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? AppColors.primary : AppColors.darkGrey,
+                size: 28,
+              ),
+              const SizedBox(width: 15),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? AppColors.primary : AppColors.darkGrey,
                 ),
               ),
             ],

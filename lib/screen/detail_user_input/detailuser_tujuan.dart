@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -199,163 +201,203 @@ class _DetailuserTujuanState extends State<DetailuserTujuan> {
             },
             child: Stack(
               children: [
-                Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Ink(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                                color: AppColors.primary, width: 0.5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: IconButton(
-                            icon: SvgPicture.asset(
-                              'assets/icons/arrow.svg',
-                              colorFilter: const ColorFilter.mode(
-                                  AppColors.primary, BlendMode.srcIn),
-                              height: 15,
-                              width: 15,
-                            ),
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                          ),
+                Column(children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Ink(
+                        decoration: BoxDecoration(
+                          border:
+                              Border.all(color: AppColors.primary, width: 0.5),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        SizedBox(
-                          width: screenWidth * 0.73,
-                          child: LinearProgressIndicator(
-                            value: _progressValue,
-                            backgroundColor: Colors.grey[300],
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.primary),
-                            minHeight: 10,
-                            borderRadius: BorderRadius.circular(5),
+                        child: IconButton(
+                          icon: SvgPicture.asset(
+                            'assets/icons/arrow.svg',
+                            colorFilter: const ColorFilter.mode(
+                                AppColors.primary, BlendMode.srcIn),
+                            height: 15,
+                            width: 15,
                           ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: screenWidth * 0.73,
+                        child: LinearProgressIndicator(
+                          value: _progressValue,
+                          backgroundColor: Colors.grey[300],
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppColors.primary),
+                          minHeight: 10,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Column(
+                          children: [
+                            const Text(
+                              "Apa Tujuan Kamu?",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.darkGrey,
+                              ),
+                            ),
+                            const SizedBox(height: 11),
+                            const Text(
+                              "Kami ingin mengenal Anda lebih baik untuk menjadikan aplikasi VitaCal dipersonalisasi.",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppColors.darkGrey,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 33),
+                            Column(
+                              children: [
+                                _buildTujuanCard(
+                                  context,
+                                  label: "Menurunkan Berat Badan",
+                                  icon: Icons.remove_circle_outline,
+                                  value: Tujuan.menurunkanBeratBadan,
+                                  screenWidth: screenWidth,
+                                  // PERBAIKAN: Tambahkan isSelected dan onTap
+                                  isSelected: _selectedTujuan ==
+                                      Tujuan.menurunkanBeratBadan,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTujuan =
+                                          Tujuan.menurunkanBeratBadan;
+                                      _tujuanErrorMessage = null;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(
+                                    height: 12), // Spasi antar kartu tujuan
+                                _buildTujuanCard(
+                                  context,
+                                  label: "Menambah Berat Badan",
+                                  icon: Icons.add_circle_outline,
+                                  value: Tujuan.menambahBeratBadan,
+                                  screenWidth: screenWidth,
+                                  // PERBAIKAN: Tambahkan isSelected dan onTap
+                                  isSelected: _selectedTujuan ==
+                                      Tujuan.menambahBeratBadan,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTujuan =
+                                          Tujuan.menambahBeratBadan;
+                                      _tujuanErrorMessage = null;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                _buildTujuanCard(
+                                  context,
+                                  label: "Menjaga Berat Badan Ideal",
+                                  icon: Icons.balance,
+                                  value: Tujuan.menjagaBeratBadanIdeal,
+                                  screenWidth: screenWidth,
+                                  // PERBAIKAN: Tambahkan isSelected dan onTap
+                                  isSelected: _selectedTujuan ==
+                                      Tujuan.menjagaBeratBadanIdeal,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTujuan =
+                                          Tujuan.menjagaBeratBadanIdeal;
+                                      _tujuanErrorMessage = null;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                _buildTujuanCard(
+                                  context,
+                                  label: "Menaikkan Massa Tubuh",
+                                  icon: Icons.fitness_center,
+                                  value: Tujuan.menaikanMassaTubuh,
+                                  screenWidth: screenWidth,
+                                  // PERBAIKAN: Tambahkan isSelected dan onTap
+                                  isSelected: _selectedTujuan ==
+                                      Tujuan.menaikanMassaTubuh,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTujuan =
+                                          Tujuan.menaikanMassaTubuh;
+                                      _tujuanErrorMessage = null;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(
+                                    height:
+                                        20), // Padding bawah daftar kartu tujuan
+                              ],
+                            ),
+                            if (_tujuanErrorMessage != null)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    top: 8.0, left: 16.0, right: 16.0),
+                                child: Text(
+                                  _tujuanErrorMessage!,
+                                  style: const TextStyle(
+                                      color: Colors.red, fontSize: 13),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Column(
-                            children: [
-                              const Text(
-                                "Apa Tujuan Kamu?",
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.darkGrey,
-                                ),
+                  ),
+                  SizedBox(
+                      width: double.infinity,
+                      child: Container(
+                          decoration: BoxDecoration(
+                            gradient: AppColors.greenGradient,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                // PERBAIKAN: Menggunakan Color.fromRGBO
+                                color: Color.fromRGBO(
+                                    AppColors.primary.red,
+                                    AppColors.primary.green,
+                                    AppColors.primary.blue,
+                                    0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
                               ),
-                              const SizedBox(height: 11),
-                              const Text(
-                                "Kami ingin mengenal Anda lebih baik untuk menjadikan aplikasi VitaCal dipersonalisasi.",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: AppColors.darkGrey,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 33),
-                              Column(
-                                children: [
-                                  _buildTujuanCard(
-                                    label: "Menurunkan Berat Badan",
-                                    icon: Icons.remove_circle_outline,
-                                    value: Tujuan.menurunkanBeratBadan,
-                                    screenWidth: screenWidth,
-                                  ),
-                                  const SizedBox(height: 15),
-                                  _buildTujuanCard(
-                                    label: "Menambah Berat Badan",
-                                    icon: Icons.add_circle_outline,
-                                    value: Tujuan.menambahBeratBadan,
-                                    screenWidth: screenWidth,
-                                  ),
-                                  const SizedBox(height: 15),
-                                  _buildTujuanCard(
-                                    label: "Menjaga Berat Badan Ideal",
-                                    icon: Icons.balance,
-                                    value: Tujuan.menjagaBeratBadanIdeal,
-                                    screenWidth: screenWidth,
-                                  ),
-                                  const SizedBox(height: 15),
-                                  _buildTujuanCard(
-                                    label: "Menaikkan Massa Tubuh",
-                                    icon: Icons.fitness_center,
-                                    value: Tujuan.menaikanMassaTubuh,
-                                    screenWidth: screenWidth,
-                                  ),
-                                ],
-                              ),
-                              if (_tujuanErrorMessage != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                      top: 8.0, left: 16.0, right: 16.0),
-                                  child: Text(
-                                    _tujuanErrorMessage!,
-                                    style: const TextStyle(
-                                        color: Colors.red, fontSize: 13),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      width: screenWidth * 0.85,
-                      child: Ink(
-                        decoration: BoxDecoration(
-                          gradient: AppColors.greenGradient,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _onFinishPressed,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _onFinishPressed,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: const Text(
-                            "Selesai",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_isLoading)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      ignoring: !_isLoading,
-                      child: AnimatedOpacity(
-                        opacity: _isLoading ? 0.7 : 0.0,
-                        duration: const Duration(milliseconds: 300),
-                        child: Container(
-                          color: const Color.fromARGB(0, 0, 0, 0),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.primary),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white)
+                                : const Text(
+                                    "Selesai",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          )))
+                ])
               ],
             ),
           ),
@@ -364,49 +406,58 @@ class _DetailuserTujuanState extends State<DetailuserTujuan> {
     );
   }
 
-  Widget _buildTujuanCard({
+  // Widget helper untuk membangun Card pilihan tujuan
+  Widget _buildTujuanCard(
+    BuildContext context, {
     required String label,
     required IconData icon,
     required Tujuan value,
     required double screenWidth,
+    required bool isSelected, // Tambahkan ini sebagai parameter
+    required VoidCallback onTap, // Tambahkan ini sebagai parameter
   }) {
-    return SizedBox(
-      width: screenWidth * 0.85,
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedTujuan = value;
-            _tujuanErrorMessage = null;
-          });
-        },
-        child: Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(21),
-            side: _selectedTujuan == value && _tujuanErrorMessage != null
-                ? const BorderSide(color: Colors.red, width: 2)
-                : BorderSide.none,
-          ),
-          color:
-              _selectedTujuan == value ? const Color(0xFFF1F0E9) : Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 10),
-                Text(
+    return InkWell(
+      onTap: onTap, // Gunakan onTap di sini
+      borderRadius:
+          BorderRadius.circular(12), // Radius konsisten dengan input field
+      child: Card(
+        elevation: 1, // Elevation yang sedikit lebih rendah
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12), // Radius konsisten
+          side: isSelected
+              ? const BorderSide(
+                  color: AppColors.primary, width: 2) // Border saat terpilih
+              : BorderSide(
+                  color: Colors.grey.withOpacity(0.3),
+                  width: 1), // Border halus saat tidak terpilih
+        ),
+        // PERBAIKAN: Warna background saat terpilih adalah AppColors.primary (solid)
+        color: isSelected ? AppColors.lightPrimary : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              vertical: 18, horizontal: 20), // Padding disesuaikan
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors
+                        .primary, // Warna ikon berubah menjadi putih saat dipilih
+                size: 28, // Ukuran ikon konsisten
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? AppColors.primary : AppColors.darkGrey,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -43,7 +43,7 @@ class _MainPageState extends State<MainPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
           context: context,
-          barrierDismissible: false, // Tidak bisa ditutup sembarangan
+          barrierDismissible: true, // Tidak bisa ditutup sembarangan
           builder: (BuildContext dialogContext) {
             return CustomAlertDialog(
               title: 'Login Berhasil!',

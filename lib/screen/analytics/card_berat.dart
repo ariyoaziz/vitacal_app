@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vitacal_app/themes/colors.dart';
-// PERBAIKAN: Menggunakan import yang benar untuk file dialog yang sudah digabungkan
-import 'package:vitacal_app/screen/analytics/showdialog_berat.dart'; // <<< PASTIKAN PATH INI BENAR >>>
+// PASTIKAN PATH INI BENAR untuk dialog kustom Anda
+import 'package:vitacal_app/screen/analytics/showdialog_berat.dart';
 
 class BeratCard extends StatelessWidget {
   final String label;
@@ -24,11 +24,9 @@ class BeratCard extends StatelessWidget {
     double minValue;
     double maxValue;
 
-    // PERBAIKAN: Inisialisasi unit, minValue, dan maxValue berdasarkan label
+    // Inisialisasi unit, minValue, dan maxValue berdasarkan label
     if (label == "Berat Sekarang" || label == "Tujuan Berat") {
       unit = "kg";
-      // PERBAIKAN minValue: Mengubah dari 30.0 ke 10.0
-      // Ini akan memungkinkan nilai seperti 24.9 untuk valid
       minValue =
           10.0; // Contoh nilai minimum yang lebih fleksibel untuk berat badan
       maxValue = 200.0; // Contoh nilai maksimum untuk berat badan
@@ -37,7 +35,7 @@ class BeratCard extends StatelessWidget {
       minValue = 50.0; // Contoh nilai minimum untuk tinggi badan
       maxValue = 250.0; // Contoh nilai maksimum untuk tinggi badan
     } else {
-      // Default jika label tidak cocok (seharusnya tidak terjadi jika pemanggilan sudah tepat)
+      // Default jika label tidak cocok
       unit = "";
       minValue = 0.0;
       maxValue = 100.0;
@@ -45,75 +43,81 @@ class BeratCard extends StatelessWidget {
 
     return Card(
       color: AppColors.screen,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)),
-      elevation: 1,
+      // Bentuk kartu yang lebih modern dengan radius 24 dan elevation 2
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 2, // Menaikkan elevation untuk kesan kedalaman
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(11),
+            padding: const EdgeInsets.all(
+                20), // Padding yang lebih besar untuk konten
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SvgPicture.asset(icon, height: 14),
+                    // Ukuran ikon ditingkatkan agar lebih terlihat
+                    SvgPicture.asset(icon, height: 24),
                     const SizedBox(width: 11),
                     Text(
                       label,
                       style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 16, // Ukuran font label disesuaikan
+                          fontWeight: FontWeight.w600, // Sedikit lebih tebal
                           color: AppColors.darkGrey),
                     ),
                   ],
                 ),
-                const SizedBox(height: 21),
+                const SizedBox(height: 24), // Spasi setelah label/ikon
                 Text(
                   // Menggunakan .toStringAsFixed(1) untuk menampilkan satu angka desimal
-                  // sesuai dengan presisi picker dan kebutuhan.
-                  "${value.toStringAsFixed(1)} $unit", // Menambahkan unit langsung di sini
+                  "${value.toStringAsFixed(1)} $unit",
                   style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 28, // Ukuran font nilai lebih besar
+                      fontWeight: FontWeight.w700, // Sangat tebal
                       color: AppColors.darkGrey),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 21),
+          // Spasi sebelum tombol, disesuaikan agar rapi dengan padding atas
+          const SizedBox(height: 24),
           SizedBox(
-            width: double.infinity,
+            width: double.infinity, // Memastikan tombol memenuhi lebar card
             child: ElevatedButton(
               onPressed: () {
-                // Memanggil fungsi dialog showUpdateValueDialog yang sudah digabungkan
+                // Memanggil fungsi dialog showUpdateValueDialog
                 showUpdateValueDialog(
                   context: context,
                   title: label,
                   onSave: (newValue) {
-                    onUpdate(
-                        newValue); // Meneruskan nilai yang disimpan kembali
+                    onUpdate(newValue); // Meneruskan nilai yang disimpan
                   },
                   initialValue: value,
-                  minValue:
-                      minValue, // Meneruskan minValue yang sudah disesuaikan
-                  maxValue:
-                      maxValue, // Meneruskan maxValue yang sudah disesuaikan
+                  minValue: minValue,
+                  maxValue: maxValue,
                   unit: unit,
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.screen, // Warna teks tombol
+                // Bentuk tombol agar menyatu dengan radius bawah kartu
                 shape: const RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.vertical(bottom: Radius.circular(21)),
+                  borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(24)), // Radius sesuai kartu
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                    vertical: 18), // Padding vertikal tombol lebih besar
+                elevation:
+                    0, // Menghilangkan elevation default tombol jika sudah ada shadow di parent
               ),
               child: const Text(
                 "Perbaharui",
                 style: TextStyle(
-                    color: AppColors.screen, fontWeight: FontWeight.w600),
+                    color: AppColors.screen,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16), // Ukuran font tombol
               ),
             ),
           ),

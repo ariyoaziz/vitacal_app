@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:vitacal_app/screen/auth/login.dart';
 import 'package:vitacal_app/screen/auth/registrasi.dart';
@@ -9,137 +11,144 @@ class GetStarted extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Mendapatkan lebar dan tinggi layar
     double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: AppColors.screen,
       body: SafeArea(
         child: Center(
-          // Center agar Column berada di tengah
           child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.only(
-                top: screenHeight * 0.15, // Padding atas 150
-                bottom: screenHeight * 0.03, // Padding bawah 30
-                left: screenWidth * 0.05, // Padding kiri 20
-                right: screenWidth * 0.05, // Padding kanan 20
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SvgPicture.asset(
-                    'assets/icons/logo1.svg',
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.08,
+              vertical: 40,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Logo - Ukuran diperbesar
+                SvgPicture.asset(
+                  'assets/icons/logo1.svg',
+                  height: 150, // Tinggi logo diperbesar
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Sahabat Nutrisi Sehatmu!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.darkGrey,
                   ),
-                  const Text(
-                    "Sahabat Nutrisi Sehatmu!",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 150),
+                ),
+                const SizedBox(height: 80),
 
-                  SizedBox(
-                    width: screenWidth * 0.8,
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        gradient: AppColors.greenGradient,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const Registrasi(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                // Tombol "Pengguna Baru"
+                SizedBox(
+                  width: double.infinity,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.greenGradient,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
                         ),
-                        child: const Text(
-                          "Pengguna Baru",
-                          style: TextStyle(
-                            color: Colors
-                                .white, // Warna teks agar tetap terlihat jelas
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
-                  ),
-
-                  const SizedBox(height: 33),
-
-                  // Daftar Sekarang Button
-                  SizedBox(
-                    width: screenWidth * 0.8,
-                    height: screenHeight * 0.05,
-                    child: OutlinedButton(
+                    child: ElevatedButton(
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const Login(),
+                            builder: (context) => const Registrasi(),
                           ),
                         );
                       },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.primary),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: const Text(
-                        "Sudah Punya Akun",
+                        "Pengguna Baru",
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 150),
+                ),
 
-                  const Text(
-                    "Dengan Melanjutkan Anda Menyetujui",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.darkGrey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: () {
-                      // Aksi ketika teks syarat dan ketentuan ditekan
-                      print('Syarat dan Ketentuan Diklik');
+                const SizedBox(height: 20),
+
+                // Tombol "Sudah Punya Akun"
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const Login(),
+                        ),
+                      );
                     },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                          color: AppColors.primary, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      foregroundColor: AppColors.primary,
+                    ),
                     child: const Text(
-                      "Syarat dan Ketentuan Kami dan Kebijakan Privasi",
-                      textAlign: TextAlign.center,
+                      "Sudah Punya Akun",
                       style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkGrey,
-                        decoration: TextDecoration.underline,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 100),
+
+                // Teks Kebijakan Privasi
+                const Text(
+                  "Dengan melanjutkan Anda menyetujui",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11, // Ukuran font diperkecil
+                    color: AppColors.darkGrey,
+                  ),
+                ),
+                const SizedBox(height: 4), // Spasi antara baris teks
+                GestureDetector(
+                  onTap: () {
+                    print('Syarat dan Ketentuan Diklik');
+                  },
+                  child: Text(
+                    "Syarat dan Ketentuan Kami dan Kebijakan Privasi",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11, // Ukuran font diperkecil
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkGrey,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20), // Jarak dari bagian paling bawah
+              ],
             ),
           ),
         ),
