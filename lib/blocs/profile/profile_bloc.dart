@@ -1,30 +1,83 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:vitacal_app/services/profile_service.dart'; // Import ProfileService yang baru
-import 'profile_event.dart'; // Import event profil
-import 'profile_state.dart'; // Import state profil
-// Import ProfileModel yang baru
+// lib/blocs/profile/profile_bloc.dart
 
-/// BLoC yang bertanggung jawab untuk mengelola state tampilan data profil pengguna.
-/// Fokus hanya pada operasi GET (membaca/menampilkan data).
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vitacal_app/services/profile_service.dart';
+import 'package:vitacal_app/exceptions/auth_exception.dart';
+import 'package:vitacal_app/models/profile_model.dart';
+// import 'package:vitacal_app/models/user_detail_model.dart'; // <<< HAPUS IMPORT INI (unused_import)
+
+import 'package:vitacal_app/blocs/profile/profile_event.dart';
+import 'package:vitacal_app/blocs/profile/profile_state.dart';
+
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final ProfileService profileService;
+  ProfileModel? _currentProfileData;
 
   ProfileBloc({required this.profileService}) : super(ProfileInitial()) {
+    // <<< HAPUS 'const' DI SINI
     on<LoadProfileData>(_onLoadProfileData);
+    on<ResetProfileData>(_onResetProfileData);
   }
 
-  /// Handler untuk event [LoadProfileData].
-  /// Memuat data profil dari backend melalui ProfileService.
   Future<void> _onLoadProfileData(
       LoadProfileData event, Emitter<ProfileState> emit) async {
-    emit(ProfileLoading()); // Memancarkan state loading
-    try {
-      final profileData = await profileService.getProfileData();
-      print('DEBUG: ProfileBloc - Data profil dimuat: ${profileData.nama}, ${profileData.email}, Berat: ${profileData.beratBadan}');
-      emit(ProfileLoaded(profileData)); // Memancarkan state sukses dengan data
-    } catch (e) {
-      print('DEBUG: ProfileBloc - Error memuat profil: ${e.toString()}');
-      emit(ProfileError(e.toString())); // Memancarkan state error jika gagal
+    // 1. Jika ada data lama, tampilkan dulu untuk responsifitas (UI tidak kosong/loading spinner terus-menerus)
+    if (_currentProfileData != null) {
+      emit(ProfileLoaded(_currentProfileData!));
+      print('DEBUG PROFILE BLOC: Menampilkan data profil yang sudah ada.');
+    } else {
+      // Jika belum ada data sama sekali, tampilkan loading spinner
+      emit(ProfileLoading()); // <<< HAPUS 'const' DI SINI
+      print('DEBUG PROFILE BLOC: Memulai loading data profil (pertama kali).');
     }
+
+    try {
+      final ProfileModel newProfileData = await profileService.getProfileData();
+
+      // DEBUGGING: Untuk melihat perbandingan
+      print('DEBUG PROFILE BLOC: Data profil lama: $_currentProfileData');
+      print('DEBUG PROFILE BLOC: Data profil baru dari API: $newProfileData');
+
+      // 2. Bandingkan data baru dengan data yang sudah ada
+      if (_currentProfileData != newProfileData) {
+        _currentProfileData = newProfileData;
+        emit(ProfileLoaded(_currentProfileData!));
+        print(
+            'DEBUG PROFILE BLOC: Data profil diperbarui karena ada perubahan dari API.');
+      } else {
+        print(
+            'DEBUG PROFILE BLOC: Data profil tidak berubah, tidak ada pembaruan UI.');
+      }
+    } on AuthException catch (e) {
+      if (_currentProfileData != null) {
+        emit(ProfileLoaded(_currentProfileData!));
+        emit(ProfileError(e.message));
+        print(
+            'DEBUG PROFILE BLOC: AuthException saat memuat profil: ${e.message}');
+      } else {
+        emit(ProfileError(e.message));
+        print(
+            'DEBUG PROFILE BLOC: Error pertama kali memuat profil (AuthException): ${e.message}');
+      }
+    } catch (e) {
+      if (_currentProfileData != null) {
+        emit(ProfileLoaded(_currentProfileData!));
+        emit(ProfileError(
+            'Terjadi kesalahan tidak terduga saat memuat profil: ${e.toString()}'));
+        print(
+            'DEBUG PROFILE BLOC: Error tak terduga saat memuat profil: ${e.toString()}');
+      } else {
+        emit(ProfileError(
+            'Terjadi kesalahan tidak terduga saat memuat profil: ${e.toString()}'));
+        print(
+            'DEBUG PROFILE BLOC: Error pertama kali memuat profil (tak terduga): ${e.toString()}');
+      }
+    }
+  }
+
+  void _onResetProfileData(ResetProfileData event, Emitter<ProfileState> emit) {
+    _currentProfileData = null;
+    emit(ProfileInitial());
+    print('DEBUG PROFILE BLOC: Data profil direset.');
   }
 }

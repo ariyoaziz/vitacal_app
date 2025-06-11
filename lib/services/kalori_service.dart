@@ -3,20 +3,13 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vitacal_app/models/kalori_model.dart';
-import 'package:vitacal_app/exceptions/auth_exception.dart';
-import 'package:vitacal_app/services/constants.dart'; // <<< Gunakan AuthException
+// Import model baru
+import 'package:vitacal_app/exceptions/auth_exception.dart'; // Gunakan AuthException Anda
+import 'package:vitacal_app/services/constants.dart'; // Pastikan AppConstants ada
 
 class CalorieService {
   final String _baseUrl = AppConstants.baseUrl;
 
-  // Helper untuk mendapatkan User ID dari SharedPreferences
-  Future<int?> _getUserIdFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('user_id'); // Asumsi user ID disimpan sebagai int
-  }
-
-  // Helper generik untuk membuat permintaan API yang terautentikasi
-  // Mengembalikan Map<String, dynamic> dari respons JSON
   Future<Map<String, dynamic>> _sendAuthenticatedRequest(
     String endpoint, {
     String method = 'GET',
@@ -26,7 +19,8 @@ class CalorieService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
-    if (token == null) {
+    if (token == null || token.isEmpty) {
+      // Periksa juga jika token kosong
       throw AuthException('Anda belum login. Silakan login kembali.');
     }
 
@@ -56,48 +50,69 @@ class CalorieService {
           break;
       }
 
+      print('DEBUG API: URL: $url');
+      print('DEBUG API: Method: $method');
+      print('DEBUG API: Status Code: ${response.statusCode}');
+      print('DEBUG API: Response Body: ${response.body}');
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        // Cek jika body respons kosong atau bukan JSON sebelum decode
         if (response.body.isEmpty) {
+          // Beberapa DELETE atau PUT mungkin mengembalikan body kosong
           return {}; // Mengembalikan map kosong jika body kosong
         }
         return json.decode(response.body) as Map<String, dynamic>;
       } else {
         String errorMessage;
         try {
+          // Coba parse body respons untuk pesan kesalahan
           final Map<String, dynamic> errorData = json.decode(response.body);
           errorMessage = errorData['message'] ??
-              'Terjadi kesalahan tidak diketahui dari server.';
+              errorData[
+                  'msg'] ?? // Terkadang Flask-JWT-Extended menggunakan 'msg'
+              'Terjadi kesalahan tidak diketahui dari server (Status: ${response.statusCode}).';
         } catch (jsonError) {
+          // Jika body respons tidak valid JSON, gunakan pesan umum
           errorMessage =
               'Respons server tidak valid atau kosong (Status: ${response.statusCode}).';
         }
-        throw AuthException(errorMessage); // <<< Gunakan AuthException
+        // Jika status code adalah 401 atau 403, bisa jadi masalah otentikasi
+        if (response.statusCode == 401 || response.statusCode == 403) {
+          throw AuthException(
+              'Sesi Anda telah berakhir atau tidak valid. Silakan login kembali.');
+        }
+        throw AuthException(errorMessage);
       }
     } on http.ClientException catch (e) {
+      // Kesalahan jaringan
       throw AuthException(
           'Gagal terhubung ke server. Pastikan koneksi internet Anda aktif. (${e.message})');
     } catch (e) {
+      // Kesalahan lain yang tidak terduga
+      print(
+          'ERROR di _sendAuthenticatedRequest: ${e.toString()}'); // Log error untuk debugging
       throw AuthException('Terjadi kesalahan tidak terduga: ${e.toString()}');
     }
   }
 
   /// Mengambil data rekomendasi kalori dari API Flask.
+  /// Asumsi: endpoint 'hitung-kalori' mengembalikan langsung objek KaloriModel.
+  /// Jika backend mengembalikan objek yang bersarang (misal: {'data': {...}}),
+  /// Anda perlu menyesuaikan sesuai respons backend Anda.
   Future<KaloriModel> fetchCalorieRecommendation() async {
     try {
       final responseData =
           await _sendAuthenticatedRequest('hitung-kalori', method: 'GET');
-      // Periksa 'data' di dalam responseData, bukan responseData itu sendiri yang null
-      if (responseData['data'] != null) {
+      // Berdasarkan log, respons API hitung-kalori bersarang di bawah kunci 'data'
+      if (responseData.containsKey('data') &&
+          responseData['data'] is Map<String, dynamic>) {
         return KaloriModel.fromJson(
             responseData['data'] as Map<String, dynamic>);
       } else {
         throw AuthException(
-            'Data profil belum lengkap atau rekomendasi kalori tidak ditemukan.');
+            'Data rekomendasi kalori tidak ditemukan atau struktur respons tidak valid.');
       }
     } catch (e) {
-      // AuthException sudah cukup spesifik, tidak perlu rethrow
-      rethrow; // Melemparkan kembali exception yang ada
+      rethrow;
     }
   }
 
@@ -106,45 +121,15 @@ class CalorieService {
     try {
       final responseData =
           await _sendAuthenticatedRequest('delete-kalori', method: 'DELETE');
-      if (responseData['message'] != null) {
+      if (responseData.containsKey('message') &&
+          responseData['message'] != null) {
         return responseData['message'] as String;
       } else {
-        throw AuthException(
-            'Tidak ada pesan sukses ditemukan dalam respons penghapusan rekomendasi kalori.');
+        // Jika backend sukses tapi tidak mengembalikan pesan, berikan pesan default
+        return 'Data rekomendasi kalori berhasil dihapus.';
       }
     } catch (e) {
-      rethrow; // Melemparkan kembali exception yang ada
+      rethrow;
     }
-  }
-
-  // --- NEW METHOD: Get Daily Calorie Summary for Analytics Page ---
-  Future<Map<String, dynamic>> getDailyCalorieSummary() async {
-    final userId = await _getUserIdFromPrefs();
-    if (userId == null) {
-      throw AuthException('User ID tidak ditemukan. Mohon login ulang.');
-    }
-    // Asumsi endpoint backend untuk ringkasan kalori adalah /calories/summary/<user_id>
-    final responseData = await _sendAuthenticatedRequest(
-        'calories/summary/$userId',
-        method: 'GET');
-    // Jika responsnya adalah Map langsung, Anda bisa mengembalikan langsung
-    return responseData;
-  }
-
-  // --- NEW METHOD: Get Weight History for Analytics Page ---
-  Future<List<Map<String, dynamic>>> getWeightHistory() async {
-    final userId = await _getUserIdFromPrefs();
-    if (userId == null) {
-      throw AuthException('User ID tidak ditemukan. Mohon login ulang.');
-    }
-    // Asumsi endpoint backend untuk riwayat berat adalah /weight-history/<user_id>
-    final responseData = await _sendAuthenticatedRequest(
-        'weight-history/$userId',
-        method: 'GET');
-    // Asumsi respons adalah Map dengan kunci 'history' yang berisi List
-    if (responseData['history'] is List) {
-      return List<Map<String, dynamic>>.from(responseData['history'] as List);
-    }
-    return []; // Mengembalikan list kosong jika tidak ada data history
   }
 }

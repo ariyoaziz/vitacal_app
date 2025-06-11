@@ -275,7 +275,6 @@ class CardBeratGrafik extends StatelessWidget {
         // Tombol untuk melihat lebih banyak data, jika diperlukan
         TextButton(
           onPressed: () {
-            // TODO: Navigasi ke halaman detail riwayat berat badan
             print('Lihat Riwayat Berat Badan diklik');
           },
           style: TextButton.styleFrom(

@@ -436,7 +436,7 @@ class _LoginState extends State<Login> {
                                         ? const CircularProgressIndicator(
                                             color: Colors.white)
                                         : const Text(
-                                            "Daftar Sekarang",
+                                            "Masuk",
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 18,

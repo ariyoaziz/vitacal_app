@@ -1,9 +1,9 @@
 // lib/utils/dialog_helpers.dart
-// Mengandung fungsi-fungsi helper untuk menampilkan berbagai dialog
+// ignore_for_file: no_leading_underscores_for_local_identifiers
 
 import 'package:flutter/material.dart';
-import 'package:vitacal_app/themes/colors.dart';
-import 'package:vitacal_app/models/enums.dart'; // Untuk Enum seperti JenisKelamin, Aktivitas, Tujuan
+import 'package:vitacal_app/themes/colors.dart'; // Pastikan AppColors diimpor
+// Untuk Enum seperti JenisKelamin, Aktivitas, Tujuan
 
 // --- FUNGSI HELPER: showUpdateValueDialog (untuk angka desimal seperti Berat/Tinggi) ---
 Future<void> showUpdateValueDialog({
@@ -15,33 +15,31 @@ Future<void> showUpdateValueDialog({
   required double maxValue,
   required String unit,
 }) async {
-  // Menginisialisasi bagian bulat dan desimal dari nilai awal
-  double clampedInitialValue = initialValue.clamp(minValue, maxValue);
-
-  double _currentWholePart = clampedInitialValue.floorToDouble();
+  double _currentWholePart =
+      initialValue.clamp(minValue, maxValue).floorToDouble();
   double _currentDecimalPart =
-      ((clampedInitialValue - _currentWholePart) * 10).roundToDouble();
+      ((initialValue.clamp(minValue, maxValue) - _currentWholePart) * 10)
+          .roundToDouble();
 
-  // Membuat daftar angka untuk picker bagian bulat
   final List<int> wholeNumbersList = List<int>.generate(
     (maxValue.floor() - minValue.floor() + 1),
     (index) => minValue.floor() + index,
   );
-  // Membuat daftar angka untuk picker bagian desimal (0-9)
   final List<int> decimalNumbersList = List<int>.generate(10, (index) => index);
 
-  // Menginisialisasi controller untuk setiap picker
   FixedExtentScrollController wholePartController = FixedExtentScrollController(
-    initialItem: wholeNumbersList.isNotEmpty
-        ? wholeNumbersList.indexOf(_currentWholePart.toInt())
-        : 0,
+    initialItem: wholeNumbersList.indexOf(_currentWholePart.toInt()),
   );
   FixedExtentScrollController decimalPartController =
       FixedExtentScrollController(
-    initialItem: decimalNumbersList.isNotEmpty
-        ? decimalNumbersList.indexOf(_currentDecimalPart.toInt())
-        : 0,
+    initialItem: decimalNumbersList.indexOf(_currentDecimalPart.toInt()),
   );
+
+  // Lebar picker akan disesuaikan berdasarkan persentase lebar layar
+  final double screenWidth = MediaQuery.of(context).size.width;
+  final double pickerColumnWidth =
+      screenWidth * 0.22; // Sekitar 22% dari lebar layar
+  final double pickerItemHeight = 55; // Tinggi setiap item di picker
 
   await showDialog(
     context: context,
@@ -52,27 +50,31 @@ Future<void> showUpdateValueDialog({
             required FixedExtentScrollController controller,
             required List<int> items,
             required ValueChanged<int> onSelectedItemChanged,
-            required double itemHeight,
-            required double itemWidth,
             required int selectedValue, // Nilai yang sedang dipilih
-            bool isDecimalPart = false, // True jika ini untuk bagian desimal
+            bool isDecimalPart = false,
+            double width = 80, // Default width for a picker wheel
           }) {
             return Container(
-              width: itemWidth,
-              height: itemHeight * 3, // Tinggi yang menampilkan 3 item
+              width: width,
+              height: pickerItemHeight * 3, // Tinggi yang menampilkan 3 item
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5), // Latar belakang abu-abu muda
+                color: AppColors.screen, // Menggunakan AppColors.screen
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                     color: AppColors.primary.withOpacity(0.3), width: 1),
               ),
               child: ListWheelScrollView.useDelegate(
                 controller: controller,
-                itemExtent: itemHeight,
+                itemExtent: pickerItemHeight,
                 perspective: 0.005,
                 diameterRatio: 1.5,
                 physics: const FixedExtentScrollPhysics(),
-                onSelectedItemChanged: onSelectedItemChanged,
+                onSelectedItemChanged: (index) {
+                  setState(() {
+                    onSelectedItemChanged(
+                        index); // Meneruskan index yang dipilih
+                  });
+                },
                 childDelegate: ListWheelChildBuilderDelegate(
                   builder: (context, index) {
                     if (index < 0 || index >= items.length) {
@@ -111,7 +113,8 @@ Future<void> showUpdateValueDialog({
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors
+                .screen, // Menggunakan AppColors.screen untuk dialog background
             insetPadding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             contentPadding:
@@ -134,7 +137,7 @@ Future<void> showUpdateValueDialog({
               ],
             ),
             content: SizedBox(
-              width: 300,
+              width: screenWidth * 0.7, // Lebar konten dialog sekitar 70% layar
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -142,19 +145,16 @@ Future<void> showUpdateValueDialog({
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Picker untuk bagian depan koma
                       _buildNumberPickerWheel(
                         controller: wholePartController,
                         items: wholeNumbersList,
                         onSelectedItemChanged: (index) {
-                          setState(() {
-                            _currentWholePart =
-                                wholeNumbersList[index].toDouble();
-                          });
+                          _currentWholePart =
+                              wholeNumbersList[index].toDouble();
                         },
-                        itemHeight: 65,
-                        itemWidth: 80,
                         selectedValue: _currentWholePart.toInt(),
+                        width:
+                            pickerColumnWidth, // Menggunakan lebar yang konsisten
                       ),
                       const SizedBox(width: 6),
                       const Text(
@@ -166,20 +166,17 @@ Future<void> showUpdateValueDialog({
                         ),
                       ),
                       const SizedBox(width: 6),
-                      // Picker untuk bagian belakang koma
                       _buildNumberPickerWheel(
                         controller: decimalPartController,
                         items: decimalNumbersList,
                         onSelectedItemChanged: (index) {
-                          setState(() {
-                            _currentDecimalPart =
-                                decimalNumbersList[index].toDouble();
-                          });
+                          _currentDecimalPart =
+                              decimalNumbersList[index].toDouble();
                         },
-                        itemHeight: 65,
-                        itemWidth: 65,
                         selectedValue: _currentDecimalPart.toInt(),
                         isDecimalPart: true,
+                        width: pickerColumnWidth *
+                            0.7, // Bagian desimal mungkin sedikit lebih kecil
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -232,13 +229,6 @@ Future<void> showUpdateValueDialog({
                   final double finalValue =
                       _currentWholePart + (_currentDecimalPart / 10.0);
 
-                  print('DIALOG SAVE DEBUG: finalValue: $finalValue');
-                  print('DIALOG SAVE DEBUG: minValue: $minValue');
-                  print('DIALOG SAVE DEBUG: maxValue: $maxValue');
-                  print('DIALOG SAVE DEBUG: unit: $unit');
-                  print(
-                      'DIALOG SAVE DEBUG: Kondisi validasi: ${finalValue >= minValue && finalValue <= maxValue}');
-
                   if (finalValue >= minValue && finalValue <= maxValue) {
                     onSave(finalValue);
                     Navigator.of(stfContext).pop();
@@ -283,8 +273,7 @@ Future<T?> showUpdateEnumDialog<T extends Enum>({
   required String title,
   required T? initialValue,
   required List<T> values,
-  required String Function(T value)
-      displayString, // Fungsi untuk mengubah Enum ke string tampilan
+  required String Function(T value) displayString,
 }) async {
   T? selectedValue = initialValue;
 
@@ -295,7 +284,7 @@ Future<T?> showUpdateEnumDialog<T extends Enum>({
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.screen, // Menggunakan AppColors.screen
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -326,6 +315,7 @@ Future<T?> showUpdateEnumDialog<T extends Enum>({
                       selectedValue = newValue;
                     });
                   },
+                  activeColor: AppColors.primary, // Warna saat terpilih
                 );
               }).toList(),
             );

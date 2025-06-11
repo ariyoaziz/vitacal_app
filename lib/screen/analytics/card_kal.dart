@@ -254,7 +254,6 @@ class KaloriChartCard extends StatelessWidget {
         // Tombol untuk melihat lebih banyak data, jika diperlukan
         TextButton(
           onPressed: () {
-            // TODO: Navigasi ke halaman detail riwayat kalori
             print('Lihat Riwayat Kalori diklik');
           },
           style: TextButton.styleFrom(

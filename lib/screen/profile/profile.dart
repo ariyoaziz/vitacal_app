@@ -11,6 +11,8 @@ import 'package:vitacal_app/blocs/profile/profile_event.dart';
 import 'package:vitacal_app/blocs/profile/profile_state.dart';
 import 'package:vitacal_app/models/enums.dart';
 
+import 'package:vitacal_app/utils/dialog_helpers.dart'; // PENTING: Pastikan import ini benar
+
 class Profile extends StatefulWidget {
   const Profile({super.key});
 
@@ -22,13 +24,11 @@ class _ProfileState extends State<Profile> {
   @override
   void initState() {
     super.initState();
-    context.read<ProfileBloc>().add(LoadProfileData());
+    context.read<ProfileBloc>().add(const LoadProfileData());
   }
 
   Future<void> _refreshData() async {
-    context.read<ProfileBloc>().add(LoadProfileData());
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
+    context.read<ProfileBloc>().add(const LoadProfileData());
   }
 
   // Helper function untuk menampilkan baris informasi profil
@@ -38,7 +38,6 @@ class _ProfileState extends State<Profile> {
       Widget? trailingWidget,
       VoidCallback? onTap}) {
     return InkWell(
-      // Menggunakan InkWell untuk efek ripple saat diklik
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 11.0),
@@ -77,7 +76,6 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     const double iconSize = 24.0;
-    // const Icon arrowRightIcon = Icon(Icons.chevron_right, color: Colors.grey); // Ikon panah tetap didefinisikan
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 248, 248, 248),
@@ -104,7 +102,15 @@ class _ProfileState extends State<Profile> {
                 return const Center(child: CircularProgressIndicator());
               } else if (state is ProfileLoaded) {
                 final profileData = state.profileData;
-                final String formattedUmur = "${profileData.umur} Tahun";
+
+                if (profileData.userDetail == null) {
+                  return const Center(
+                      child: Text('User detail data is missing.'));
+                }
+
+                final userDetail = profileData.userDetail!;
+
+                final String formattedUmur = "${userDetail.umur} Tahun";
                 final String statusAkun = profileData.verified
                     ? "Terverifikasi"
                     : "Belum Diverifikasi";
@@ -115,12 +121,19 @@ class _ProfileState extends State<Profile> {
                 try {
                   DateTime createdAt =
                       DateTime.parse(profileData.userCreatedAt);
-                  // Perbaiki format tanggal untuk bahasa Indonesia
-                  tanggalAkunDibuat =
-                      DateFormat('d MMMM yyyy', 'id_ID').format(createdAt);
+                  tanggalAkunDibuat = DateFormat('d MMMM yyyy',
+                          'id_ID') // FIX: Format tahun yang benar
+                      .format(createdAt);
                 } catch (e) {
                   print('Error parsing userCreatedAt: $e');
                 }
+
+                print('DEBUG PROFILE: ProfileModel Loaded: $profileData');
+                print(
+                    'DEBUG PROFILE: UserDetail Data: ${profileData.userDetail}');
+                print('DEBUG PROFILE: BMI Data: ${profileData.bmiData}');
+                print(
+                    'DEBUG PROFILE: Profile Rekomendasi Kalori Data: ${profileData.profileRekomendasiKalori}');
 
                 return SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -138,7 +151,7 @@ class _ProfileState extends State<Profile> {
                           IconButton(
                             icon: SvgPicture.asset("assets/icons/logo.svg",
                                 height: 35),
-                            onPressed: () {/* No action for logo */},
+                            onPressed: () {},
                           ),
                           Row(
                             children: [
@@ -184,38 +197,44 @@ class _ProfileState extends State<Profile> {
                                 children: [
                                   GestureDetector(
                                     onTap: () {
-                                      // TODO: Aksi ubah foto profil
                                       print('Ubah Foto Profil diklik');
                                     },
                                     child: CircleAvatar(
                                       radius: 32,
-                                      backgroundImage: profileData
-                                                  .profileImageBytes !=
-                                              null
-                                          ? MemoryImage(
-                                              profileData.profileImageBytes!)
-                                          : const AssetImage(
-                                                  'assets/images/user.png')
-                                              as ImageProvider,
+                                      backgroundImage:
+                                          userDetail.profileImageBytes != null
+                                              ? MemoryImage(
+                                                  userDetail.profileImageBytes!)
+                                              : const AssetImage(
+                                                      'assets/images/user.png')
+                                                  as ImageProvider,
                                     ),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: GestureDetector(
                                       onTap: () {
-                                        // TODO: Aksi ubah nama/umur (navigasi ke edit profil)
                                         print('Ubah Nama/Umur diklik');
+                                        // TODO: Panggil dialog untuk edit nama/umur
                                       },
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            profileData.nama,
+                                            userDetail.nama,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w700,
                                               fontSize: 18,
                                               color: AppColors.darkGrey,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            profileData.username,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey,
                                             ),
                                           ),
                                           const SizedBox(height: 4),
@@ -283,13 +302,27 @@ class _ProfileState extends State<Profile> {
                             children: [
                               _buildInfoRow(
                                 'Berat Badan',
-                                '${profileData.beratBadan.toStringAsFixed(1)} Kg',
+                                '${userDetail.beratBadan.toStringAsFixed(1)} Kg',
                                 isBold: true,
                                 trailingWidget: const Icon(Icons.chevron_right,
-                                    color: Colors
-                                        .grey), // Menggunakan const untuk ikon
+                                    color: Colors.grey),
                                 onTap: () {
-                                  print('Ubah Berat Badan diklik');
+                                  // REMOVED await and newValue assignment
+                                  showUpdateValueDialog(
+                                    // Direct call
+                                    context: context,
+                                    title: 'Ubah Berat Badan',
+                                    initialValue: userDetail.beratBadan,
+                                    minValue: 30.0,
+                                    maxValue: 200.0,
+                                    unit: 'Kg',
+                                    onSave: (value) {
+                                      print('Berat Badan Disimpan: $value Kg');
+                                      // TODO: Panggil event ProfileBloc untuk update data ke backend
+                                      // context.read<ProfileBloc>().add(UpdateBeratBadan(value));
+                                      _refreshData();
+                                    },
+                                  );
                                 },
                               ),
                               const SizedBox(height: 11),
@@ -299,12 +332,27 @@ class _ProfileState extends State<Profile> {
                               const SizedBox(height: 11),
                               _buildInfoRow(
                                 'Tinggi Badan',
-                                '${profileData.tinggiBadan.toStringAsFixed(1)} cm',
+                                '${userDetail.tinggiBadan.toStringAsFixed(1)} cm',
                                 isBold: true,
                                 trailingWidget: const Icon(Icons.chevron_right,
                                     color: Colors.grey),
                                 onTap: () {
-                                  print('Ubah Tinggi Badan diklik');
+                                  // REMOVED await and newValue assignment
+                                  showUpdateValueDialog(
+                                    // Direct call
+                                    context: context,
+                                    title: 'Ubah Tinggi Badan',
+                                    initialValue: userDetail.tinggiBadan,
+                                    minValue: 100.0,
+                                    maxValue: 250.0,
+                                    unit: 'cm',
+                                    onSave: (value) {
+                                      print('Tinggi Badan Disimpan: $value cm');
+                                      // TODO: Panggil event ProfileBloc untuk update ke backend
+                                      // context.read<ProfileBloc>().add(UpdateTinggiBadan(value));
+                                      _refreshData();
+                                    },
+                                  );
                                 },
                               ),
                               const SizedBox(height: 11),
@@ -314,12 +362,28 @@ class _ProfileState extends State<Profile> {
                               const SizedBox(height: 11),
                               _buildInfoRow(
                                 'Jenis Kelamin',
-                                profileData.jenisKelamin.toDisplayString(),
+                                userDetail.jenisKelamin.toDisplayString(),
                                 isBold: true,
                                 trailingWidget: const Icon(Icons.chevron_right,
                                     color: Colors.grey),
-                                onTap: () {
-                                  print('Ubah Jenis Kelamin diklik');
+                                onTap: () async {
+                                  // Keep await here, as showUpdateEnumDialog returns a value
+                                  final JenisKelamin? newValue =
+                                      await showUpdateEnumDialog<JenisKelamin>(
+                                    context: context,
+                                    title: 'Ubah Jenis Kelamin',
+                                    initialValue: userDetail.jenisKelamin,
+                                    values: JenisKelamin.values,
+                                    displayString: (jk) => jk.toDisplayString(),
+                                  );
+                                  if (newValue != null) {
+                                    // Only refresh if a new value was actually selected
+                                    print(
+                                        'Jenis Kelamin baru dari dialog: ${newValue.toDisplayString()}');
+                                    // TODO: Panggil event ProfileBloc untuk update ke backend
+                                    // context.read<ProfileBloc>().add(UpdateJenisKelamin(newValue));
+                                    _refreshData();
+                                  }
                                 },
                               ),
                               const SizedBox(height: 11),
@@ -329,12 +393,29 @@ class _ProfileState extends State<Profile> {
                               const SizedBox(height: 11),
                               _buildInfoRow(
                                 'Aktivitas',
-                                profileData.aktivitas.toDisplayString(),
+                                userDetail.aktivitas.toDisplayString(),
                                 isBold: true,
                                 trailingWidget: const Icon(Icons.chevron_right,
                                     color: Colors.grey),
-                                onTap: () {
-                                  print('Ubah Aktivitas diklik');
+                                onTap: () async {
+                                  // Keep await here
+                                  final Aktivitas? newValue =
+                                      await showUpdateEnumDialog<Aktivitas>(
+                                    context: context,
+                                    title: 'Ubah Tingkat Aktivitas',
+                                    initialValue: userDetail.aktivitas,
+                                    values: Aktivitas.values,
+                                    displayString: (akt) =>
+                                        akt.toDisplayString(),
+                                  );
+                                  if (newValue != null) {
+                                    // Only refresh if a new value was actually selected
+                                    print(
+                                        'Aktivitas baru dari dialog: ${newValue.toDisplayString()}');
+                                    // TODO: Panggil event ProfileBloc untuk update ke backend
+                                    // context.read<ProfileBloc>().add(UpdateAktivitas(newValue));
+                                    _refreshData();
+                                  }
                                 },
                               ),
                               const SizedBox(height: 11),
@@ -344,13 +425,29 @@ class _ProfileState extends State<Profile> {
                               const SizedBox(height: 11),
                               _buildInfoRow(
                                 'Tujuan',
-                                profileData.tujuan?.toDisplayString() ??
+                                userDetail.tujuan?.toDisplayString() ??
                                     'Tidak ditetapkan',
                                 isBold: true,
                                 trailingWidget: const Icon(Icons.chevron_right,
                                     color: Colors.grey),
-                                onTap: () {
-                                  print('Ubah Tujuan diklik');
+                                onTap: () async {
+                                  // Keep await here
+                                  final Tujuan? newValue =
+                                      await showUpdateEnumDialog<Tujuan>(
+                                    context: context,
+                                    title: 'Ubah Tujuan',
+                                    initialValue: userDetail.tujuan,
+                                    values: Tujuan.values,
+                                    displayString: (t) => t.toDisplayString(),
+                                  );
+                                  if (newValue != null) {
+                                    // Only refresh if a new value was actually selected
+                                    print(
+                                        'Tujuan baru dari dialog: ${newValue.toDisplayString()}');
+                                    // TODO: Panggil event ProfileBloc untuk update ke backend
+                                    // context.read<ProfileBloc>().add(UpdateTujuan(newValue));
+                                    _refreshData();
+                                  }
                                 },
                               ),
                             ],
@@ -382,55 +479,66 @@ class _ProfileState extends State<Profile> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Mengakses BMI dari profileData.bmiData
                               if (profileData.bmiData != null) ...[
                                 _buildInfoRow(
-                                    'Status BMI', profileData.bmiData!.status,
-                                    isBold: true),
+                                  'Status BMI',
+                                  profileData.bmiData!.status,
+                                  isBold: true,
+                                ),
                                 const SizedBox(height: 11),
                                 const Divider(
                                     height: 1,
                                     color: Color.fromARGB(25, 0, 0, 0)),
                                 const SizedBox(height: 11),
                                 _buildInfoRow(
-                                    'Nilai BMI',
-                                    profileData.bmiData!.bmiValue
-                                        .toStringAsFixed(2),
-                                    isBold: true),
+                                  'Nilai BMI',
+                                  profileData.bmiData!.bmiValue
+                                      .toStringAsFixed(2),
+                                  isBold: true,
+                                ),
                                 const SizedBox(height: 11),
                                 const Divider(
                                     height: 1,
                                     color: Color.fromARGB(25, 0, 0, 0)),
                                 const SizedBox(height: 11),
                               ],
-                              if (profileData.rekomendasiKalori != null) ...[
-                                _buildInfoRow('Kalori Harian',
-                                    '${profileData.rekomendasiKalori!.numericRekomendasiKalori.toInt()} Kkal',
-                                    isBold: true),
+                              // Mengakses Rekomendasi Kalori dari profileData.profileRekomendasiKalori
+                              if (profileData.profileRekomendasiKalori !=
+                                  null) ...[
+                                _buildInfoRow(
+                                  'Kalori Harian',
+                                  '${profileData.profileRekomendasiKalori!.numericRekomendasiKalori} Kkal',
+                                  isBold: true,
+                                ),
                                 const SizedBox(height: 11),
                                 const Divider(
                                     height: 1,
                                     color: Color.fromARGB(25, 0, 0, 0)),
                                 const SizedBox(height: 11),
                                 _buildInfoRow(
-                                    'BMR',
-                                    profileData.rekomendasiKalori!.bmr
-                                        .toInt()
-                                        .toString(),
-                                    isBold: true),
+                                  'BMR',
+                                  profileData.profileRekomendasiKalori!.bmr
+                                      .toInt()
+                                      .toString(),
+                                  isBold: true,
+                                ),
                                 const SizedBox(height: 11),
                                 const Divider(
                                     height: 1,
                                     color: Color.fromARGB(25, 0, 0, 0)),
                                 const SizedBox(height: 11),
                                 _buildInfoRow(
-                                    'TDEE',
-                                    profileData.rekomendasiKalori!.tdee
-                                        .toInt()
-                                        .toString(),
-                                    isBold: true),
+                                  'TDEE',
+                                  profileData.profileRekomendasiKalori!.tdee
+                                      .toInt()
+                                      .toString(),
+                                  isBold: true,
+                                ),
                               ],
+                              // Pesan jika tidak ada data analisis kesehatan
                               if (profileData.bmiData == null &&
-                                  profileData.rekomendasiKalori == null)
+                                  profileData.profileRekomendasiKalori == null)
                                 const Center(
                                   child: Text(
                                     'Data analisis kesehatan tidak tersedia.',
@@ -480,7 +588,6 @@ class _ProfileState extends State<Profile> {
                                     color: AppColors.darkGrey,
                                   ),
                                 ),
-                                // trailing: arrowRightIcon, // Dihapus
                                 onTap: () {
                                   print('Ganti Kata Sandi diklik');
                                 },
@@ -503,7 +610,6 @@ class _ProfileState extends State<Profile> {
                                     color: AppColors.darkGrey,
                                   ),
                                 ),
-                                // trailing: arrowRightIcon, // Dihapus
                                 onTap: () {
                                   print('Keluar diklik');
                                 },
@@ -526,7 +632,6 @@ class _ProfileState extends State<Profile> {
                                     color: Color(0XFFFF0000),
                                   ),
                                 ),
-                                // trailing: arrowRightIcon, // Dihapus
                                 onTap: () {
                                   print('Hapus Akun diklik');
                                 },

@@ -15,6 +15,35 @@ class KaloriBloc extends Bloc<KaloriEvent, KaloriState> {
   KaloriBloc({required this.calorieService}) : super(const KaloriInitial()) {
     on<FetchKaloriData>(_onFetchKaloriData);
     on<DeleteKaloriData>(_onDeleteKaloriData);
+    on<LoadDailyCalorieData>(_onLoadDailyCalorieData);
+    on<LoadWeightGraphData>(_onLoadWeightGraphData);
+  }
+  Future<void> _onLoadDailyCalorieData(
+      LoadDailyCalorieData event, Emitter<KaloriState> emit) async {
+    emit(const KaloriLoading());
+    try {
+      emit(const KaloriError(
+          'Fitur LoadDailyCalorieData belum diimplementasikan.')); // Placeholder
+    } on ApiException catch (e) {
+      emit(KaloriError(e.message));
+    } catch (e) {
+      emit(KaloriError(
+          'Terjadi kesalahan saat memuat data kalori harian: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onLoadWeightGraphData(
+      LoadWeightGraphData event, Emitter<KaloriState> emit) async {
+    emit(const KaloriLoading());
+    try {
+      emit(const KaloriError(
+          'Fitur LoadWeightGraphData belum diimplementasikan.')); // Placeholder
+    } on ApiException catch (e) {
+      emit(KaloriError(e.message));
+    } catch (e) {
+      emit(KaloriError(
+          'Terjadi kesalahan saat memuat data grafik berat badan: ${e.toString()}'));
+    }
   }
 
   Future<void> _onFetchKaloriData(

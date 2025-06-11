@@ -1,77 +1,78 @@
-import 'package:equatable/equatable.dart'; // Import Equatable
+// lib/models/kalori_model.dart
+import 'package:equatable/equatable.dart';
 
 class KaloriModel extends Equatable {
-  // Ditambahkan: extends Equatable
-  final double bmi;
+  // Properti sesuai dengan respons dari endpoint '/hitung-kalori'
+  final double bmi; // Dari "BMI"
+  final double bmr; // Dari "BMR"
+  final double tdee; // Dari "TDEE"
+  final String rekomendasiKaloriText;
   final String statusBmi;
-  final double bmr;
-  final double tdee;
-  final String tujuan;
-  final String rekomendasiKalori;
   final String statusDatabase;
+  final String tujuanText;
 
-  // ignore: prefer_const_constructors_in_immutables
-  KaloriModel({
+  const KaloriModel({
     required this.bmi,
-    required this.statusBmi,
     required this.bmr,
     required this.tdee,
-    required this.tujuan,
-    required this.rekomendasiKalori,
+    required this.rekomendasiKaloriText, // Perbaiki nama properti
+    required this.statusBmi,
     required this.statusDatabase,
+    required this.tujuanText, // Perbaiki nama properti
   });
 
   factory KaloriModel.fromJson(Map<String, dynamic> json) {
-    // PERBAIKAN: Gunakan double.tryParse untuk penanganan angka dari string yang lebih aman
     return KaloriModel(
-      bmi: (json['BMI'] != null)
-          ? double.tryParse(json['BMI'].toString()) ?? 0.0
-          : 0.0,
+      bmi: (json['BMI'] as num?)?.toDouble() ?? 0.0,
+      bmr: (json['BMR'] as num?)?.toDouble() ?? 0.0,
+      tdee: (json['TDEE'] as num?)?.toDouble() ?? 0.0,
+      rekomendasiKaloriText:
+          json['rekomendasi_kalori'] as String? ?? '', // Parse sebagai String
       statusBmi: json['status_bmi'] as String? ?? '',
-      bmr: (json['BMR'] != null)
-          ? double.tryParse(json['BMR'].toString()) ?? 0.0
-          : 0.0,
-      tdee: (json['TDEE'] != null)
-          ? double.tryParse(json['TDEE'].toString()) ?? 0.0
-          : 0.0,
-      tujuan: json['tujuan'] as String? ?? '',
-      rekomendasiKalori: json['rekomendasi_kalori'] as String? ?? '',
       statusDatabase: json['status_database'] as String? ?? '',
+      tujuanText: json['tujuan'] as String? ?? '', // Parse sebagai String
     );
   }
 
-  // Helper untuk mengekstrak hanya bagian angka dari rekomendasi kalori
+  // Helper untuk mengekstrak hanya bagian angka dari rekomendasiKaloriText (String)
   int get numericRekomendasiKalori {
-    final match = RegExp(r'(\d+)').firstMatch(rekomendasiKalori);
+    final match = RegExp(r'(\d+)').firstMatch(rekomendasiKaloriText);
     if (match != null) {
       return int.tryParse(match.group(1)!) ?? 0;
     }
     return 0;
   }
 
-  // --- BARU: Tambahkan metode toJson() ---
+  // Helper untuk membersihkan dan menampilkan string tujuan (jika diperlukan)
+  String get cleanedTujuan {
+    if (tujuanText.isEmpty) return 'Tidak ditetapkan';
+    // Menghapus "Tujuan Anda adalah " jika ada
+    return tujuanText
+        .replaceAll('Tujuan Anda adalah ', '')
+        .replaceAll('_', ' ')
+        .trim();
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'BMI': bmi,
-      'status_bmi': statusBmi,
       'BMR': bmr,
       'TDEE': tdee,
-      'tujuan': tujuan,
-      'rekomendasi_kalori': rekomendasiKalori,
+      'rekomendasi_kalori': rekomendasiKaloriText,
+      'status_bmi': statusBmi,
       'status_database': statusDatabase,
+      'tujuan': tujuanText,
     };
   }
-  // --- AKHIR BARU ---
 
   @override
   List<Object?> get props => [
-        // Ditambahkan: props untuk Equatable
         bmi,
-        statusBmi,
         bmr,
         tdee,
-        tujuan,
-        rekomendasiKalori,
+        rekomendasiKaloriText,
+        statusBmi,
         statusDatabase,
+        tujuanText,
       ];
 }

@@ -1,6 +1,6 @@
+// lib/models/bmi_model.dart
 import 'package:equatable/equatable.dart';
 
-/// Model untuk data BMI (Body Mass Index).
 class BmiDataModel extends Equatable {
   final int bmiId;
   final double bmiValue;
@@ -19,10 +19,8 @@ class BmiDataModel extends Equatable {
   factory BmiDataModel.fromJson(Map<String, dynamic> json) {
     return BmiDataModel(
       bmiId: json['bmi_id'] as int,
-      // Penting: Parsing bmi_value yang mungkin string atau float dari API
-      bmiValue: (json['bmi_value'] is String)
-          ? double.tryParse(json['bmi_value']) ?? 0.0
-          : (json['bmi_value'] as num).toDouble(),
+      bmiValue: double.tryParse(json['bmi_value'].toString()) ??
+          0.0, // Parse dari String ke double
       status: json['status'] as String,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
@@ -32,7 +30,8 @@ class BmiDataModel extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'bmi_id': bmiId,
-      'bmi_value': bmiValue,
+      'bmi_value': bmiValue
+          .toString(), // Kembali ke String jika diperlukan untuk dikirim
       'status': status,
       'created_at': createdAt,
       'updated_at': updatedAt,
@@ -40,5 +39,11 @@ class BmiDataModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [bmiId, bmiValue, status, createdAt, updatedAt];
+  List<Object?> get props => [
+        bmiId,
+        bmiValue,
+        status,
+        createdAt,
+        updatedAt,
+      ];
 }
