@@ -215,7 +215,6 @@ class _ProfileState extends State<Profile> {
                                     child: GestureDetector(
                                       onTap: () {
                                         print('Ubah Nama/Umur diklik');
-                                        // TODO: Panggil dialog untuk edit nama/umur
                                       },
                                       child: Column(
                                         crossAxisAlignment:
@@ -318,8 +317,7 @@ class _ProfileState extends State<Profile> {
                                     unit: 'Kg',
                                     onSave: (value) {
                                       print('Berat Badan Disimpan: $value Kg');
-                                      // TODO: Panggil event ProfileBloc untuk update data ke backend
-                                      // context.read<ProfileBloc>().add(UpdateBeratBadan(value));
+
                                       _refreshData();
                                     },
                                   );
@@ -348,8 +346,7 @@ class _ProfileState extends State<Profile> {
                                     unit: 'cm',
                                     onSave: (value) {
                                       print('Tinggi Badan Disimpan: $value cm');
-                                      // TODO: Panggil event ProfileBloc untuk update ke backend
-                                      // context.read<ProfileBloc>().add(UpdateTinggiBadan(value));
+
                                       _refreshData();
                                     },
                                   );
@@ -380,8 +377,7 @@ class _ProfileState extends State<Profile> {
                                     // Only refresh if a new value was actually selected
                                     print(
                                         'Jenis Kelamin baru dari dialog: ${newValue.toDisplayString()}');
-                                    // TODO: Panggil event ProfileBloc untuk update ke backend
-                                    // context.read<ProfileBloc>().add(UpdateJenisKelamin(newValue));
+
                                     _refreshData();
                                   }
                                 },
@@ -412,8 +408,7 @@ class _ProfileState extends State<Profile> {
                                     // Only refresh if a new value was actually selected
                                     print(
                                         'Aktivitas baru dari dialog: ${newValue.toDisplayString()}');
-                                    // TODO: Panggil event ProfileBloc untuk update ke backend
-                                    // context.read<ProfileBloc>().add(UpdateAktivitas(newValue));
+
                                     _refreshData();
                                   }
                                 },
@@ -444,8 +439,7 @@ class _ProfileState extends State<Profile> {
                                     // Only refresh if a new value was actually selected
                                     print(
                                         'Tujuan baru dari dialog: ${newValue.toDisplayString()}');
-                                    // TODO: Panggil event ProfileBloc untuk update ke backend
-                                    // context.read<ProfileBloc>().add(UpdateTujuan(newValue));
+
                                     _refreshData();
                                   }
                                 },

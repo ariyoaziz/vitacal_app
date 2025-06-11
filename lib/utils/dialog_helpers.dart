@@ -1,5 +1,5 @@
 // lib/utils/dialog_helpers.dart
-// ignore_for_file: no_leading_underscores_for_local_identifiers
+// ignore_for_file: no_leading_underscores_for_local_identifiers, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:vitacal_app/themes/colors.dart'; // Pastikan AppColors diimpor
