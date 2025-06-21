@@ -76,6 +76,18 @@ class _HomeState extends State<Home> {
     });
   }
 
+  // Tambahkan fungsi ini di dalam kelas _HomeState Anda
+  String _getCalorieAdjustmentText(int recommendedCalories, double tdee) {
+    int adjustment = (recommendedCalories - tdee).round();
+    if (adjustment > 0) {
+      return "ditambah ${adjustment.abs()} Kkal";
+    } else if (adjustment < 0) {
+      return "dikurangi ${adjustment.abs()} Kkal";
+    } else {
+      return "tanpa penyesuaian";
+    }
+  }
+
   // Metode untuk menghasilkan daftar tanggal dalam seminggu
   void _generateWeekDates(DateTime centralDate) {
     DateTime startOfWeek =
@@ -98,12 +110,7 @@ class _HomeState extends State<Home> {
     setState(() {
       _selectedDate = newDate;
       selectedIndex = index;
-      // Opsional: jika Anda ingin minggu yang ditampilkan berubah sesuai tanggal yang dipilih
-      // _generateWeekDates(newDate);
-      // selectedIndex = weekDates.indexWhere((date) => DateFormat("yyyy-MM-dd").format(date) == DateFormat("yyyy-MM-dd").format(newDate));
     });
-    // Anda mungkin ingin memicu pengambilan data kalori baru berdasarkan tanggal yang dipilih
-    // context.read<KaloriBloc>().add(FetchKaloriData(date: newDate)); // Jika FetchKaloriData mendukung tanggal
   }
 
   Future<void> _triggerFetchKaloriData() async {
@@ -126,8 +133,6 @@ class _HomeState extends State<Home> {
           DateFormat("yyyy-MM-dd").format(_selectedDate));
     });
 
-    // Kemudian picu event untuk memuat data dari BLoC
-    // BLoC akan menangani logika caching dan memutuskan kapan UI perlu di-rebuild
     context.read<KaloriBloc>().add(const FetchKaloriData());
     context.read<ProfileBloc>().add(const LoadProfileData());
   }
@@ -219,7 +224,6 @@ class _HomeState extends State<Home> {
       print('Error parsing userCreatedAt from ProfileModel: $e');
     }
 
-    // Tentukan apakah tanggal yang dipilih di bawah tanggal pembuatan akun
     bool isDateBeforeAccountCreation = userCreatedAtDate != null &&
         _selectedDate.isBefore(DateTime(userCreatedAtDate.year,
             userCreatedAtDate.month, userCreatedAtDate.day));
@@ -287,7 +291,8 @@ class _HomeState extends State<Home> {
             ],
             child: BlocBuilder<KaloriBloc, KaloriState>(
               builder: (context, kaloriState) {
-                int kaloriSudahDikonsumsiHariIni = 0;
+                int kaloriSudahDikonsumsiHariIni =
+                    0; // Pastikan ini diisi dari data aktual!
                 int kaloriYangMasihBisaDikonsumsi = 0;
                 int totalRekomendasiKalori = 0;
 
@@ -319,13 +324,11 @@ class _HomeState extends State<Home> {
                     progressValue = 1;
                   }
 
-                  // Mengakses tujuan dari _currentProfileModel
                   String tujuanDisplayString = _currentProfileModel
                           ?.userDetail?.tujuan
                           ?.toDisplayString() ??
                       '';
 
-                  // Logika Pesan Ringkas berdasarkan data
                   if (isDateBeforeAccountCreation) {
                     displayMessageSpans.add(
                       const TextSpan(
@@ -471,10 +474,8 @@ class _HomeState extends State<Home> {
                       Align(
                         alignment: Alignment.center,
                         child: Text(
-                          DateFormat("EEEE, d MMMM yyyy",
-                                  'id_ID') // <<< PERBAIKAN: Format tahun 'yyyy'
-                              .format(
-                                  _selectedDate), // Menggunakan _selectedDate
+                          DateFormat("EEEE, d MMMM yyyy", 'id_ID').format(
+                              _selectedDate), // PERBAIKAN: Format tahun 'yyyy'
                           style: const TextStyle(
                             color: AppColors.darkGrey,
                             fontSize: 18.0,
@@ -503,9 +504,7 @@ class _HomeState extends State<Home> {
 
                             return Expanded(
                               child: GestureDetector(
-                                // <<< PERBAIKAN: Panggil _onDateSelected saat diklik >>>
                                 onTap: () => _onDateSelected(date, index),
-                                // <<< AKHIR PERBAIKAN >>>
                                 child: Container(
                                   margin: const EdgeInsets.symmetric(
                                       horizontal: 4.0),
@@ -576,7 +575,8 @@ class _HomeState extends State<Home> {
                       ),
                       const SizedBox(height: 33),
 
-                      // Indikator Lingkaran Kalori (Menampilkan Kalori Rekomendasi & Konsumsi)
+                      // *** KARTU UTAMA: Indikator Lingkaran Kalori (Rekomendasi & Konsumsi) ***
+                      // *** KARTU UTAMA YANG DITINGKATKAN ***
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(24),
@@ -594,150 +594,465 @@ class _HomeState extends State<Home> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            isLoading ||
-                                    isDateBeforeAccountCreation // <<< Tampilkan loading jika tanggal di bawah tanggal akun dibuat
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white)
-                                : _currentKaloriModel == null ||
-                                        totalRekomendasiKalori <= 0
-                                    ? Column(
-                                        children: [
-                                          Text(
-                                            (kaloriState is KaloriError)
-                                                ? kaloriState.message
-                                                : "Data kalori tidak tersedia. Silakan lengkapi profil Anda atau coba hitung ulang.",
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          const SizedBox(height: 10),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              print(
-                                                  'Tombol "Coba Hitung Kalori Ulang" diklik');
-                                              context
-                                                  .read<KaloriBloc>()
-                                                  .add(const FetchKaloriData());
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    AppColors.secondary,
-                                                foregroundColor: Colors.white,
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12))),
-                                            child: const Text(
-                                                'Coba Hitung Kalori Ulang'),
-                                          ),
-                                        ],
-                                      )
-                                    : Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 170,
-                                            height: 170,
-                                            child: CircularProgressIndicator(
-                                              value: progressValue,
-                                              backgroundColor:
-                                                  Colors.white.withOpacity(0.3),
-                                              valueColor:
-                                                  const AlwaysStoppedAnimation<
-                                                      Color>(Colors.white),
-                                              strokeWidth: 15,
+                            // --- Judul Kartu Utama (Dengan Efek Gradient/Visual) ---
+                            Align(
+                              alignment: Alignment.center,
+                              child: ShaderMask(
+                                // Untuk efek gradient pada teks
+                                shaderCallback: (bounds) {
+                                  return LinearGradient(
+                                    colors: [
+                                      Colors.white,
+                                      AppColors.cream.withOpacity(0.8)
+                                    ], // Gradient dari putih ke cream
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ).createShader(bounds);
+                                },
+                                child: Text(
+                                  "Progres Kalori",
+                                  style: TextStyle(
+                                    fontSize: 20, // Lebih besar untuk penekanan
+                                    color: Colors
+                                        .white, // Warna dasar untuk ShaderMask
+                                    fontWeight: FontWeight.bold,
+                                    // letterSpacing: 0.5, // Sedikit letter spacing
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // --- Garis Pemisah Setelah Judul ---
+                            Divider(
+                              color: Colors.white.withOpacity(0.3),
+                              thickness: 1,
+                              height: 0,
+                            ),
+                            const SizedBox(height: 25),
+
+                            // --- Konten Utama Berdasarkan Kondisi ---
+                            isLoading
+                                ? Center(
+                                    child: Column(
+                                      children: [
+                                        const CircularProgressIndicator(
+                                            color: Colors.white),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          "Memuat data kalori...",
+                                          style: TextStyle(
+                                              color: Colors.white
+                                                  .withOpacity(0.8)),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : isDateBeforeAccountCreation
+                                    ? Center(
+                                        child: Column(
+                                          children: [
+                                            Icon(Icons.calendar_today,
+                                                color: Colors.white, size: 40),
+                                            const SizedBox(height: 15),
+                                            const Text(
+                                              "Data tidak tersedia untuk tanggal ini.",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  fontSize: 16),
                                             ),
-                                          ),
-                                          Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(Icons.bolt,
-                                                  color: Colors.amber,
-                                                  size: 28),
-                                              const SizedBox(height: 5),
-                                              FittedBox(
-                                                child: Text(
-                                                  '$totalRekomendasiKalori',
-                                                  style: const TextStyle(
-                                                    fontSize: 32,
-                                                    fontWeight: FontWeight.bold,
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              "Informasi kalori hanya tersedia mulai dari tanggal akun Anda terdaftar.",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                  color: Colors.white
+                                                      .withOpacity(0.7),
+                                                  fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : _currentKaloriModel == null ||
+                                            totalRekomendasiKalori <= 0
+                                        ? Center(
+                                            child: Column(
+                                              children: [
+                                                Icon(
+                                                    Icons.warning_amber_rounded,
                                                     color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 5),
-                                              const SizedBox(
-                                                width: 120,
-                                                child: Text(
-                                                  "Kalori Harian Direkomendasikan",
+                                                    size: 40),
+                                                const SizedBox(height: 15),
+                                                const Text(
+                                                  "Data kalori tidak tersedia.",
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w400,
-                                                  ),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white,
+                                                      fontSize: 16),
                                                 ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  (kaloriState is KaloriError)
+                                                      ? kaloriState.message
+                                                      : "Silakan lengkapi profil Anda atau coba hitung ulang.",
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                      color: Colors.white
+                                                          .withOpacity(0.7),
+                                                      fontSize: 13),
+                                                ),
+                                                const SizedBox(height: 15),
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    print(
+                                                        'Tombol "Coba Hitung Kalori Ulang" diklik');
+                                                    context.read<KaloriBloc>().add(
+                                                        const FetchKaloriData());
+                                                  },
+                                                  style: ElevatedButton.styleFrom(
+                                                      backgroundColor:
+                                                          AppColors.secondary,
+                                                      foregroundColor:
+                                                          Colors.white,
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          12))),
+                                                  child: const Text(
+                                                      'Coba Hitung Kalori Ulang'),
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : Column(
+                                            children: [
+                                              // Lingkaran Progres & Rekomendasi
+                                              Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  SizedBox(
+                                                    width: 200,
+                                                    height: 200,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      value: progressValue,
+                                                      backgroundColor: Colors
+                                                          .white
+                                                          .withOpacity(0.4),
+                                                      valueColor:
+                                                          const AlwaysStoppedAnimation<
+                                                                  Color>(
+                                                              Colors.white),
+                                                      strokeWidth: 20,
+                                                    ),
+                                                  ),
+                                                  Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      const Icon(Icons.bolt,
+                                                          color: Colors.amber,
+                                                          size: 28),
+                                                      const SizedBox(height: 5),
+                                                      FittedBox(
+                                                        child: Text(
+                                                          '$totalRekomendasiKalori',
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize:
+                                                                36, // Angka lebih besar
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 5),
+                                                      const SizedBox(
+                                                        width: 120,
+                                                        child: Text(
+                                                          "Kalori Harian Direkomendasikan",
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.w400,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 33),
+
+                                              // Kalori Sudah Dikonsumsi
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            10),
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: Colors.white
+                                                          .withOpacity(0.2),
+                                                    ),
+                                                    child: const Icon(
+                                                        Icons.restaurant,
+                                                        color: Colors.amber,
+                                                        size: 25),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    '$kaloriSudahDikonsumsiHariIni Kkal',
+                                                    style: const TextStyle(
+                                                      fontSize:
+                                                          24, // Angka lebih besar
+                                                      color: AppColors.cream,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 5),
+                                                  Text(
+                                                    "Kalori yang sudah dikonsumsi",
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.white
+                                                          .withOpacity(0.8),
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
-                            const SizedBox(height: 33),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white.withOpacity(0.2),
-                                  ),
-                                  child: const Icon(Icons.restaurant,
-                                      color: Colors.amber, size: 25),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '$kaloriSudahDikonsumsiHariIni Kkal',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    color: AppColors.cream,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  "Kalori yang sudah dikonsumsi",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 33),
-
-                            // Detail Makro Nutrien (belum terhubung ke data aktual)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildMacroNutrientColumn(
-                                    "Protein", Icons.fitness_center, "0g"),
-                                _buildMacroNutrientColumn(
-                                    "Lemak", Icons.local_fire_department, "0g"),
-                                _buildMacroNutrientColumn(
-                                    "Karbohidrat", Icons.restaurant_menu, "0g"),
-                              ],
-                            ),
                           ],
                         ),
                       ),
+                      const SizedBox(
+                          height:
+                              33), // Jarak antara kartu utama dan kartu detail
+
+                      // *** KARTU BARU: Detail BMR, TDEE, dan Penjelasan ***
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(
+                            24), // Padding konsisten dengan kartu atas
+                        decoration: BoxDecoration(
+                          color:
+                              AppColors.screen, // Latar belakang warna screen
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                "Analisis Kalori Harian", // Perhatikan penggunaan judulnya yang tetap ini
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: AppColors
+                                      .darkGrey, // Warna gelap untuk kontras
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 2,
+                                      offset: Offset(1, 1),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12), // Jarak setelah judul
+
+                            // --- Garis Pemisah Setelah Judul ---
+                            Divider(
+                              color: AppColors.darkGrey
+                                  .withOpacity(0.2), // Warna garis yang halus
+                              thickness: 1,
+                              height:
+                                  0, // Tinggi 0 agar tidak menambah ruang ekstra
+                            ),
+                            const SizedBox(
+                                height:
+                                    25), // Jarak yang lebih besar setelah divider
+
+                            // Row untuk BMR dan TDEE
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildSimplifiedInfoColumnOnWhite(
+                                  "BMR",
+                                  _currentKaloriModel != null
+                                      ? "${_currentKaloriModel!.bmr.round()} Kkal"
+                                      : "N/A",
+                                  Icons.calculate,
+                                ),
+                                _buildSimplifiedInfoColumnOnWhite(
+                                  "TDEE",
+                                  _currentKaloriModel != null
+                                      ? "${_currentKaloriModel!.tdee.round()} Kkal"
+                                      : "N/A",
+                                  Icons.directions_run,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(
+                                height: 20), // Jarak setelah BMR/TDEE
+
+                            // --- Garis Pemisah Antara Angka dan Penjelasan ---
+                            Divider(
+                              color: AppColors.darkGrey.withOpacity(0.2),
+                              thickness: 1,
+                              height: 0,
+                            ),
+                            const SizedBox(height: 20), // Jarak setelah divider
+
+                            // Penjelasan rekomendasi (Sudah diperbaiki pada iterasi sebelumnya)
+                            if (_currentKaloriModel != null &&
+                                _currentKaloriModel!
+                                    .rekomendasiKaloriText.isNotEmpty &&
+                                _currentProfileModel != null)
+                              Column(
+                                // Mengganti RichText langsung dengan Column berisi beberapa RichText/Text
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RichText(
+                                    textAlign: TextAlign.justify,
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color:
+                                            AppColors.darkGrey.withOpacity(0.8),
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                            text:
+                                                "Target kalori harian Anda adalah "),
+                                        TextSpan(
+                                          text:
+                                              "${_currentKaloriModel!.numericRekomendasiKalori} Kkal",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary),
+                                        ),
+                                        TextSpan(text: "."),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                      height: 8), // Jarak antar paragraf
+
+                                  RichText(
+                                    textAlign: TextAlign.justify,
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color:
+                                            AppColors.darkGrey.withOpacity(0.8),
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                            text:
+                                                "Angka ini dihitung dari Total Pengeluaran Energi Harian (TDEE) Anda sebesar "),
+                                        TextSpan(
+                                          text:
+                                              "${_currentKaloriModel!.tdee.round()} Kkal",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary),
+                                        ),
+                                        TextSpan(text: ", yang kemudian "),
+                                        TextSpan(
+                                          text: _getCalorieAdjustmentText(
+                                              _currentKaloriModel!
+                                                  .numericRekomendasiKalori,
+                                              _currentKaloriModel!.tdee),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary),
+                                        ),
+                                        TextSpan(
+                                            text:
+                                                " untuk mencapai tujuan Anda."),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                      height: 8), // Jarak antar paragraf
+
+                                  RichText(
+                                    textAlign: TextAlign.justify,
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color:
+                                            AppColors.darkGrey.withOpacity(0.8),
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                            text: "Tujuan utama Anda adalah "),
+                                        TextSpan(
+                                          text: _formatSnakeCaseToTitleCase(
+                                              _currentProfileModel!
+                                                      .userDetail?.tujuan
+                                                      ?.toDisplayString() ??
+                                                  'mencapai berat ideal'),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary),
+                                        ),
+                                        TextSpan(
+                                            text:
+                                                ", dengan mempertimbangkan berat badan Anda saat ini."),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else // Kondisi jika data kalori atau profil null
+                              Text(
+                                "Lengkapi data profil Anda untuk mendapatkan perhitungan kalori harian dan rekomendasi yang dipersonalisasi.",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.darkGrey.withOpacity(0.7),
+                                ),
+                                textAlign: TextAlign.justify,
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 33), // Jarak sebelum meal cards
 
                       // Bagian Makan Pagi, Siang, Malam, Lainnya
-                      const SizedBox(height: 33),
                       _buildMealCard("Makan Pagi", Icons.sunny_snowing,
                           Colors.deepOrangeAccent, const MakanPagi()),
                       const SizedBox(height: 16),
@@ -761,22 +1076,31 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildMacroNutrientColumn(String title, IconData icon, String value) {
+// Tambahkan fungsi ini di dalam kelas _HomeState Anda
+  /// Fungsi pembantu untuk tampilan info BMR/TDEE pada latar belakang terang (AppColors.screen)
+  Widget _buildSimplifiedInfoColumnOnWhite(
+      String title, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.screen, size: 24),
+        Icon(icon, color: AppColors.primary, size: 30), // Ikon berwarna primary
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            color: AppColors.darkGrey, // Teks judul gelap
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 5),
-        Text(title,
-            style: TextStyle(
-                fontSize: 14,
-                color: Colors.white.withOpacity(0.8),
-                fontWeight: FontWeight.w400)),
-        const SizedBox(height: 5),
-        Text(value,
-            style: const TextStyle(
-                fontSize: 16,
-                color: AppColors.cream,
-                fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 22,
+            color: AppColors.darkGrey, // Angka gelap
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
