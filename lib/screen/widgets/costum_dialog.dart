@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
 // Enum untuk tipe dialog (Sukses, Peringatan, Error)
@@ -13,21 +13,27 @@ enum DialogType {
 class CustomAlertDialog extends StatefulWidget {
   final String title;
   final String message;
-  final String? buttonText;
-  final VoidCallback? onButtonPressed;
+  final String? buttonText; // Teks untuk tombol utama (positif/aksi)
+  final VoidCallback? onButtonPressed; // Callback untuk tombol utama
   final DialogType type;
-  final bool showButton;
-  final Duration? autoDismissDuration;
+  final bool showButton; // Menentukan apakah tombol utama ditampilkan
+  final Duration? autoDismissDuration; // Durasi untuk auto-dismiss
+  final String?
+      secondaryButtonText; // <<< BARU: Teks untuk tombol sekunder (batal/negatif)
+  final VoidCallback?
+      onSecondaryButtonPressed; // <<< BARU: Callback untuk tombol sekunder
 
   const CustomAlertDialog({
     super.key,
-    this.title = "Info Penting", // Default title
+    this.title = "Info Penting",
     required this.message,
     this.buttonText,
     this.onButtonPressed,
-    this.type = DialogType.error, // Default type
-    this.showButton = true, // Default to show button
+    this.type = DialogType.error,
+    this.showButton = true,
     this.autoDismissDuration,
+    this.secondaryButtonText, // <<< SERTAKAN DI KONSTRUKTOR
+    this.onSecondaryButtonPressed, // <<< SERTAKAN DI KONSTRUKTOR
   });
 
   // Static method untuk menampilkan dialog dengan mudah
@@ -40,6 +46,8 @@ class CustomAlertDialog extends StatefulWidget {
     DialogType type = DialogType.error,
     bool showButton = true,
     Duration? autoDismissDuration,
+    String? secondaryButtonText, // <<< SERTAKAN DI STATIC SHOW
+    VoidCallback? onSecondaryButtonPressed, // <<< SERTAKAN DI STATIC SHOW
   }) async {
     print('DEBUG DIALOG: CustomAlertDialog.show() dipanggil!');
     print('DEBUG DIALOG: Pesan: "$message"');
@@ -57,6 +65,9 @@ class CustomAlertDialog extends StatefulWidget {
           type: type,
           showButton: showButton,
           autoDismissDuration: autoDismissDuration,
+          secondaryButtonText: secondaryButtonText, // <<< TERUSKAN PARAMETER
+          onSecondaryButtonPressed:
+              onSecondaryButtonPressed, // <<< TERUSKAN PARAMETER
         );
       },
     );
@@ -83,11 +94,16 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
 
     _animationController.forward();
 
-    if (widget.autoDismissDuration != null && !widget.showButton) {
+    // Logika auto-dismiss: Hanya jika tidak ada tombol dan durasi diberikan
+    // Sekarang, juga pastikan tidak ada tombol sekunder
+    if (widget.autoDismissDuration != null &&
+        !widget.showButton &&
+        widget.secondaryButtonText == null) {
       Future.delayed(widget.autoDismissDuration!, () {
         if (mounted && Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
-          widget.onButtonPressed?.call();
+          widget.onButtonPressed
+              ?.call(); // Panggil callback tombol utama jika di-dismiss otomatis
         }
       });
     }
@@ -99,7 +115,6 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
     super.dispose();
   }
 
-  // Helper untuk mendapatkan warna dialog berdasarkan tipe
   Color _getDialogColor() {
     switch (widget.type) {
       case DialogType.success:
@@ -111,7 +126,6 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
     }
   }
 
-  // Helper untuk mendapatkan path ikon SVG berdasarkan tipe
   String _getIconPath() {
     switch (widget.type) {
       case DialogType.success:
@@ -125,8 +139,6 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
 
   @override
   Widget build(BuildContext context) {
-    // double screenWidth = MediaQuery.of(context).size.width; // Tidak digunakan langsung
-
     return ScaleTransition(
       scale: _scaleAnimation,
       child: Dialog(
@@ -136,10 +148,8 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
         elevation: 0.0,
         backgroundColor: Colors.transparent,
         child: Stack(
-          // PERBAIKAN: Menggunakan Stack sebagai root child untuk menumpuk ikon
-          clipBehavior: Clip
-              .none, // Penting agar ikon bisa menonjol keluar dari batas Stack
-          alignment: Alignment.topCenter, // Pusatkan child di bagian atas
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
           children: <Widget>[
             // Konten Dialog (Card/Container utama)
             Container(
@@ -186,47 +196,86 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
                       color: AppColors.darkGrey,
                     ),
                   ),
-                  if (widget.showButton) const SizedBox(height: 24.0),
-                  if (widget.showButton)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          widget.onButtonPressed?.call();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _getDialogColor(),
-                          foregroundColor: AppColors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
+                  // >>>>>> LOGIKA TOMBOL DI SINI <<<<<<
+                  // Tampilkan SizedBox dan Row tombol jika ada tombol utama ATAU tombol sekunder
+                  if (widget.showButton || widget.secondaryButtonText != null)
+                    const SizedBox(height: 24.0),
+                  if (widget.showButton || widget.secondaryButtonText != null)
+                    Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center, // Pusatkan tombol
+                      children: [
+                        // Tombol Sekunder (Batal)
+                        if (widget.secondaryButtonText != null)
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop(); // Tutup dialog
+                                widget.onSecondaryButtonPressed
+                                    ?.call(); // Panggil callback sekunder
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.darkGrey,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  side: const BorderSide(
+                                      color: AppColors.lightGrey, width: 1),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: Text(
+                                widget.secondaryButtonText!,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          widget.buttonText ?? "Oke",
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
+                        // Jarak antara tombol jika keduanya ada
+                        if (widget.showButton &&
+                            widget.secondaryButtonText != null)
+                          const SizedBox(width: 16),
+                        // Tombol Utama (Aksi)
+                        if (widget.showButton)
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                widget.onButtonPressed?.call();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _getDialogColor(),
+                                foregroundColor: AppColors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                widget.buttonText ?? "Oke",
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
+                  // >>>>>> AKHIR LOGIKA TOMBOL <<<<<<
                 ],
               ),
             ),
             // Ikon Bulat (Positioned di atas Container konten dialog)
             Positioned(
-              top: 0, // Posisi top 0 agar ikon berada di atas Container
+              top: 0,
               child: CircleAvatar(
                 backgroundColor: _getDialogColor(),
-                radius: 45.0, // Radius ikon
+                radius: 45.0,
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Color.fromRGBO(
-                            0, 0, 0, 0.2), // Mengganti withOpacity
+                        color: const Color.fromRGBO(0, 0, 0, 0.2),
                         blurRadius: 10,
                         spreadRadius: 2,
                         offset: const Offset(0, 5),
@@ -235,7 +284,7 @@ class _CustomAlertDialogState extends State<CustomAlertDialog>
                   ),
                   child: SvgPicture.asset(
                     _getIconPath(),
-                    width: 50, // Ukuran ikon SVG
+                    width: 50,
                     height: 50,
                     colorFilter: const ColorFilter.mode(
                         AppColors.white, BlendMode.srcIn),

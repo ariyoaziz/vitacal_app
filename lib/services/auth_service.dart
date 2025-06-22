@@ -4,15 +4,35 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import ini
 
-import 'package:vitacal_app/models/otp_model.dart';
+import 'package:vitacal_app/models/otp_model.dart'; // Pastikan model ini ada
 import 'package:vitacal_app/exceptions/auth_exception.dart';
-import 'package:vitacal_app/models/login_respon_model.dart';
-import 'package:vitacal_app/services/constants.dart';
+import 'package:vitacal_app/models/login_respon_model.dart'; // Pastikan model ini ada
+import 'package:vitacal_app/services/constants.dart'; // Untuk AppConstants.baseUrl
 
 class AuthService {
   final String _baseUrl = AppConstants.baseUrl;
+
+  // >>>>>> BARU: Simpan token JWT <<<<<<
+  Future<void> _saveJwtToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('jwt_token', token);
+    print('DEBUG AUTH: JWT Token saved to SharedPreferences.');
+  }
+
+  // >>>>>> BARU: Hapus token JWT <<<<<<
+  Future<void> deleteJwtToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwt_token');
+    print('DEBUG AUTH: JWT Token removed from SharedPreferences.');
+  }
+
+  // >>>>>> BARU: Dapatkan token JWT <<<<<<
+  Future<String?> getJwtToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
 
   Future<OtpResponse> registerUser({
     required String username,
@@ -20,7 +40,7 @@ class AuthService {
     required String phone,
     required String password,
   }) async {
-    final url = Uri.parse('$_baseUrl/users'); // Endpoint registrasi
+    final url = Uri.parse('$_baseUrl/users');
 
     try {
       print('AuthService: Mengirim permintaan registrasi ke: $url');
@@ -47,7 +67,6 @@ class AuthService {
       print('AuthService: Status respons registrasi: ${response.statusCode}');
       print('AuthService: Body respons registrasi: ${response.body}');
 
-      // Tangani respons berdasarkan status code
       if (response.statusCode == 201) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print('AuthService: Registrasi berhasil: $responseData');
@@ -67,21 +86,16 @@ class AuthService {
 
         print(
             'AuthService: Registrasi gagal (Status: ${response.statusCode}): $errorMessage');
-        print(
-            'AuthService: Melempar AuthException dari blok ELSE (status non-201): "$errorMessage"');
-        throw AuthException(
-            errorMessage); // Ini yang harusnya ditangkap AuthBloc
+        throw AuthException(errorMessage);
       }
     } on http.ClientException catch (e) {
       throw AuthException(
-          'Gagal terhubung ke server. Pastikan Anda terhubung ke internet dan server aktif. (${e.message})'); // Pesan user-friendly
+          'Gagal terhubung ke server. Pastikan Anda terhubung ke internet dan server aktif. (${e.message})');
     }
   }
 
-  // Metode untuk verifikasi OTP
   Future<bool> verifyOtp(String otpCode, String phoneNumber) async {
-    final url =
-        Uri.parse('$_baseUrl/users/verify-otp'); // Endpoint verifikasi OTP
+    final url = Uri.parse('$_baseUrl/users/verify-otp');
 
     try {
       print('AuthService: Mengirim permintaan verifikasi OTP ke: $url');
@@ -108,7 +122,6 @@ class AuthService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print('AuthService: Verifikasi OTP berhasil: $responseData');
-        // Sesuaikan kondisi ini agar cocok dengan pesan sukses dari Flask Anda
         return responseData['message'] == 'Verifikasi berhasil';
       } else {
         String errorMessage;
@@ -168,10 +181,8 @@ class AuthService {
 
         final String? accessToken = responseData['access_token'];
         if (accessToken != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('jwt_token', accessToken);
-          print(
-              'AuthService: Verifikasi - Token setelah disimpan & dibaca ulang: ${prefs.getString('jwt_token')}');
+          await _saveJwtToken(
+              accessToken); // <<< SIMPAN TOKEN SAAT LOGIN BERHASIL
           print('AuthService: JWT token disimpan: $accessToken');
         } else {
           throw AuthException(
@@ -186,14 +197,11 @@ class AuthService {
 
         try {
           final Map<String, dynamic> errorData = json.decode(response.body);
-          // Ambil pesan dari backend
           errorMessage = errorData['message'] ??
               'Terjadi kesalahan yang tidak diketahui dari server.';
-
           userIdFromError = errorData['user_id'] as int?;
           phoneNumberFromError = errorData['phone'] as String?;
         } catch (jsonError) {
-          // Jika respons bukan JSON atau kosong
           errorMessage =
               'Respons server tidak valid atau kosong (Status: ${response.statusCode}).';
           print('AuthService: Error decode JSON respons login: $jsonError');
@@ -208,7 +216,6 @@ class AuthService {
         );
       }
     } on http.ClientException catch (e) {
-      // Menangkap error koneksi jaringan
       print('AuthService: Error koneksi jaringan saat login: ${e.message}');
       throw AuthException(
         'Gagal terhubung ke server. Pastikan Anda terhubung ke internet dan server aktif. (${e.message})',
@@ -248,8 +255,7 @@ class AuthService {
               'Respons server tidak valid atau kosong (Status: ${response.statusCode}).';
         }
         print(
-            'AuthService: DEBUG - Melempar AuthException dengan pesan ini: "${errorMessage}"');
-        // --- INI ADALAH AuthException yang seharusnya ditangkap oleh AuthBloc ---
+            'AuthService: DEBUG - Melempar AuthException dengan pesan ini: "$errorMessage"');
         throw AuthException(errorMessage, phoneNumber: phoneNumber);
       }
     } on http.ClientException catch (e) {
@@ -292,8 +298,7 @@ class AuthService {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print(
             'AuthService: Verifikasi OTP reset berhasil: ${responseData['message']}');
-        return responseData['message'] ==
-            'Verifikasi OTP reset berhasil.'; // Sesuaikan pesan sukses
+        return responseData['message'] == 'Verifikasi OTP reset berhasil.';
       } else {
         String errorMessage;
         try {
@@ -352,7 +357,6 @@ class AuthService {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print(
             'AuthService: Reset password berhasil: ${responseData['message']}');
-        // Tidak perlu mengembalikan data spesifik, hanya indikasi sukses
       } else {
         String errorMessage;
         try {

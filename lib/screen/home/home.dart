@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/date_symbol_data_local.dart'; // Pastikan ini diimpor
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Import screen dan bloc terkait
@@ -17,10 +17,11 @@ import 'package:vitacal_app/screen/home/notifikasi.dart';
 
 // Import tema, models, dan blocs
 import 'package:vitacal_app/themes/colors.dart';
-import 'package:vitacal_app/models/kalori_model.dart'; // Untuk data dari hitung-kalori
-import 'package:vitacal_app/models/profile_model.dart'; // Untuk data profil, termasuk tujuan
-import 'package:vitacal_app/models/enums.dart'; // Diperlukan untuk Tujuan.toDisplayString()
+import 'package:vitacal_app/models/kalori_model.dart';
+import 'package:vitacal_app/models/profile_model.dart';
+import 'package:vitacal_app/models/enums.dart'; // Diperlukan untuk Tujuan.toDisplayString() dan TingkatAktivitas.toDisplayString()
 
+// Import blocs
 import 'package:vitacal_app/blocs/kalori/kalori_bloc.dart';
 import 'package:vitacal_app/blocs/kalori/kalori_event.dart';
 import 'package:vitacal_app/blocs/kalori/kalori_state.dart';
@@ -55,6 +56,8 @@ class _HomeState extends State<Home> {
   KaloriModel? _currentKaloriModel;
   ProfileModel? _currentProfileModel;
 
+  int kaloriSudahDikonsumsiHariIni = 0; // Contoh nilai default
+
   @override
   void initState() {
     super.initState();
@@ -71,8 +74,9 @@ class _HomeState extends State<Home> {
         DateFormat("yyyy-MM-dd").format(_selectedDate));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _triggerFetchKaloriData();
-      context.read<ProfileBloc>().add(const LoadProfileData());
+      _triggerFetchKaloriData(); // Panggil ini untuk mendapatkan data kalori awal
+      context.read<ProfileBloc>().add(
+          const LoadProfileData()); // Panggil ini untuk mendapatkan data profil awal
     });
   }
 
@@ -90,8 +94,7 @@ class _HomeState extends State<Home> {
 
   // Metode untuk menghasilkan daftar tanggal dalam seminggu
   void _generateWeekDates(DateTime centralDate) {
-    DateTime startOfWeek =
-        centralDate.subtract(Duration(days: centralDate.weekday - 1));
+    DateTime startOfWeek;
     // Memastikan startOfWeek adalah Senin (weekday 1)
     if (centralDate.weekday == DateTime.sunday) {
       // Jika hari Minggu, kurangi 6 hari untuk mendapatkan Senin sebelumnya
@@ -133,6 +136,7 @@ class _HomeState extends State<Home> {
           DateFormat("yyyy-MM-dd").format(_selectedDate));
     });
 
+    // Pemicu ulang data dari BLoC
     context.read<KaloriBloc>().add(const FetchKaloriData());
     context.read<ProfileBloc>().add(const LoadProfileData());
   }
@@ -192,7 +196,8 @@ class _HomeState extends State<Home> {
                             fontWeight: FontWeight.bold,
                             color: AppColors.darkGrey)),
                     const SizedBox(height: 5),
-                    Text("Total: 0 Kkal",
+                    Text(
+                        "Total: 0 Kkal", // Placeholder, perlu diisi data aktual
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
@@ -221,7 +226,7 @@ class _HomeState extends State<Home> {
         userCreatedAtDate = DateTime.parse(_currentProfileModel!.userCreatedAt);
       }
     } catch (e) {
-      print('Error parsing userCreatedAt from ProfileModel: $e');
+      print('DEBUG HOME: Error parsing userCreatedAt from ProfileModel: $e');
     }
 
     bool isDateBeforeAccountCreation = userCreatedAtDate != null &&
@@ -248,12 +253,14 @@ class _HomeState extends State<Home> {
                           backgroundColor: Colors.red),
                     );
                   } else if (state is KaloriSuccess) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(state.message),
-                          backgroundColor: Colors.green),
-                    );
-                    _triggerFetchKaloriData();
+                    // KaloriSuccess biasanya berarti suatu operasi berhasil, bukan pemuatan data
+                    // Jika ini berarti data baru tersedia, Anda mungkin perlu memicu FetchKaloriData lagi
+                    // ScaffoldMessenger.of(context).showSnackBar(
+                    //   SnackBar(
+                    //       content: Text(state.message),
+                    //       backgroundColor: Colors.green),
+                    // );
+                    _triggerFetchKaloriData(); // Panggil ulang untuk memuat data setelah sukses (misal: simpan data makanan)
                   } else if (state is KaloriLoaded) {
                     setState(() {
                       _currentKaloriModel = state.kaloriModel;
@@ -261,7 +268,7 @@ class _HomeState extends State<Home> {
                           'DEBUG HOME: KaloriModel Loaded: $_currentKaloriModel');
                       if (_currentKaloriModel != null) {
                         print(
-                            'DEBUG HOME: Rekomendasi Kalori Text: ${_currentKaloriModel!.rekomendasiKaloriText}');
+                            'DEBUG HOME: Rekomendasi Kalori: ${_currentKaloriModel!.numericRekomendasiKalori}');
                         print('DEBUG HOME: BMR: ${_currentKaloriModel!.bmr}');
                         print('DEBUG HOME: TDEE: ${_currentKaloriModel!.tdee}');
                         print(
@@ -279,10 +286,12 @@ class _HomeState extends State<Home> {
                     setState(() {
                       _currentProfileModel = state.profileData;
                       print(
-                          'DEBUG HOME: ProfileModel Loaded (for Tujuan): $_currentProfileModel');
-                      if (_currentProfileModel?.tujuan != null) {
+                          'DEBUG HOME: ProfileModel Loaded: $_currentProfileModel');
+                      if (_currentProfileModel?.userDetail != null) {
                         print(
-                            'DEBUG HOME: Tujuan (dari ProfileModel): ${_currentProfileModel!.tujuan!.toDisplayString()}');
+                            'DEBUG HOME: Tujuan (dari ProfileModel): ${_currentProfileModel!.userDetail!.tujuan?.toDisplayString()}');
+                        print(
+                            'DEBUG HOME: Tingkat Aktivitas (dari ProfileModel): ${_currentProfileModel!.userDetail!.aktivitas.toDisplayString()}');
                       }
                     });
                   }
@@ -291,11 +300,7 @@ class _HomeState extends State<Home> {
             ],
             child: BlocBuilder<KaloriBloc, KaloriState>(
               builder: (context, kaloriState) {
-                int kaloriSudahDikonsumsiHariIni =
-                    0; // Pastikan ini diisi dari data aktual!
-                int kaloriYangMasihBisaDikonsumsi = 0;
                 int totalRekomendasiKalori = 0;
-
                 double progressValue = 0.0;
                 bool isLoading = false;
                 List<TextSpan> displayMessageSpans = [];
@@ -308,11 +313,12 @@ class _HomeState extends State<Home> {
                   totalRekomendasiKalori =
                       _currentKaloriModel!.numericRekomendasiKalori;
 
-                  kaloriYangMasihBisaDikonsumsi =
-                      totalRekomendasiKalori - kaloriSudahDikonsumsiHariIni;
-                  if (kaloriYangMasihBisaDikonsumsi < 0) {
-                    kaloriYangMasihBisaDikonsumsi = 0;
-                  }
+                  // PENTING: kaloriSudahDikonsumsiHariIni masih placeholder.
+                  // Anda perlu memuat nilai ini dari backend atau BLoC makanan.
+                  // Misalnya:
+                  // if (_currentMealDataModel != null) {
+                  //   kaloriSudahDikonsumsiHariIni = _currentMealDataModel.totalKaloriDikonsumsi;
+                  // }
 
                   progressValue = totalRekomendasiKalori > 0
                       ? kaloriSudahDikonsumsiHariIni / totalRekomendasiKalori
@@ -575,8 +581,6 @@ class _HomeState extends State<Home> {
                       ),
                       const SizedBox(height: 33),
 
-                      // *** KARTU UTAMA: Indikator Lingkaran Kalori (Rekomendasi & Konsumsi) ***
-                      // *** KARTU UTAMA YANG DITINGKATKAN ***
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(24),
@@ -609,14 +613,13 @@ class _HomeState extends State<Home> {
                                     end: Alignment.bottomRight,
                                   ).createShader(bounds);
                                 },
-                                child: Text(
+                                child: const Text(
                                   "Progres Kalori",
                                   style: TextStyle(
                                     fontSize: 20, // Lebih besar untuk penekanan
                                     color: Colors
                                         .white, // Warna dasar untuk ShaderMask
                                     fontWeight: FontWeight.bold,
-                                    // letterSpacing: 0.5, // Sedikit letter spacing
                                   ),
                                 ),
                               ),
@@ -652,7 +655,7 @@ class _HomeState extends State<Home> {
                                     ? Center(
                                         child: Column(
                                           children: [
-                                            Icon(Icons.calendar_today,
+                                            const Icon(Icons.calendar_today,
                                                 color: Colors.white, size: 40),
                                             const SizedBox(height: 15),
                                             const Text(
@@ -680,7 +683,7 @@ class _HomeState extends State<Home> {
                                         ? Center(
                                             child: Column(
                                               children: [
-                                                Icon(
+                                                const Icon(
                                                     Icons.warning_amber_rounded,
                                                     color: Colors.white,
                                                     size: 40),
@@ -845,17 +848,14 @@ class _HomeState extends State<Home> {
                         ),
                       ),
                       const SizedBox(
-                          height:
-                              33), // Jarak antara kartu utama dan kartu detail
+                          height: 33), // Jarak sebelum detail BMR/TDEE
 
-                      // *** KARTU BARU: Detail BMR, TDEE, dan Penjelasan ***
+                      // *** KARTU BARU: Detail BMR, TDEE, Penjelasan & TINGKAT AKTIVITAS ***
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(
-                            24), // Padding konsisten dengan kartu atas
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color:
-                              AppColors.screen, // Latar belakang warna screen
+                          color: AppColors.screen,
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
@@ -882,7 +882,7 @@ class _HomeState extends State<Home> {
                                     Shadow(
                                       color: Colors.black.withOpacity(0.1),
                                       blurRadius: 2,
-                                      offset: Offset(1, 1),
+                                      offset: const Offset(1, 1),
                                     ),
                                   ],
                                 ),
@@ -925,6 +925,43 @@ class _HomeState extends State<Home> {
                             const SizedBox(
                                 height: 20), // Jarak setelah BMR/TDEE
 
+                            // --- BAGIAN BARU: Tingkat Aktivitas ---
+                            if (_currentProfileModel?.userDetail?.aktivitas !=
+                                null)
+                              Align(
+                                alignment: Alignment.center,
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.fitness_center_rounded,
+                                        color: AppColors.primary, size: 28),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      "Tingkat Aktivitas",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: AppColors.darkGrey,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      _formatSnakeCaseToTitleCase(
+                                          _currentProfileModel!
+                                              .userDetail!.aktivitas
+                                              .toDisplayString()),
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        color: AppColors
+                                            .primary, // Warna khusus untuk penekanan
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            const SizedBox(
+                                height: 20), // Jarak setelah aktivitas
+
                             // --- Garis Pemisah Antara Angka dan Penjelasan ---
                             Divider(
                               color: AppColors.darkGrey.withOpacity(0.2),
@@ -933,13 +970,12 @@ class _HomeState extends State<Home> {
                             ),
                             const SizedBox(height: 20), // Jarak setelah divider
 
-                            // Penjelasan rekomendasi (Sudah diperbaiki pada iterasi sebelumnya)
+                            // Penjelasan rekomendasi
                             if (_currentKaloriModel != null &&
                                 _currentKaloriModel!
                                     .rekomendasiKaloriText.isNotEmpty &&
                                 _currentProfileModel != null)
                               Column(
-                                // Mengganti RichText langsung dengan Column berisi beberapa RichText/Text
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   RichText(
@@ -952,17 +988,17 @@ class _HomeState extends State<Home> {
                                         fontWeight: FontWeight.w400,
                                       ),
                                       children: [
-                                        TextSpan(
+                                        const TextSpan(
                                             text:
                                                 "Target kalori harian Anda adalah "),
                                         TextSpan(
                                           text:
                                               "${_currentKaloriModel!.numericRekomendasiKalori} Kkal",
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: AppColors.primary),
                                         ),
-                                        TextSpan(text: "."),
+                                        const TextSpan(text: "."),
                                       ],
                                     ),
                                   ),
@@ -979,13 +1015,13 @@ class _HomeState extends State<Home> {
                                         fontWeight: FontWeight.w400,
                                       ),
                                       children: [
-                                        TextSpan(
+                                        const TextSpan(
                                             text:
                                                 "Angka ini dihitung dari Total Pengeluaran Energi Harian (TDEE) Anda sebesar "),
                                         TextSpan(
                                           text:
                                               "${_currentKaloriModel!.tdee.round()} Kkal",
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: AppColors.primary),
                                         ),
@@ -995,11 +1031,11 @@ class _HomeState extends State<Home> {
                                               _currentKaloriModel!
                                                   .numericRekomendasiKalori,
                                               _currentKaloriModel!.tdee),
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: AppColors.primary),
                                         ),
-                                        TextSpan(
+                                        const TextSpan(
                                             text:
                                                 " untuk mencapai tujuan Anda."),
                                       ],
@@ -1018,7 +1054,7 @@ class _HomeState extends State<Home> {
                                         fontWeight: FontWeight.w400,
                                       ),
                                       children: [
-                                        TextSpan(
+                                        const TextSpan(
                                             text: "Tujuan utama Anda adalah "),
                                         TextSpan(
                                           text: _formatSnakeCaseToTitleCase(
@@ -1026,11 +1062,11 @@ class _HomeState extends State<Home> {
                                                       .userDetail?.tujuan
                                                       ?.toDisplayString() ??
                                                   'mencapai berat ideal'),
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: AppColors.primary),
                                         ),
-                                        TextSpan(
+                                        const TextSpan(
                                             text:
                                                 ", dengan mempertimbangkan berat badan Anda saat ini."),
                                       ],
@@ -1076,7 +1112,6 @@ class _HomeState extends State<Home> {
     );
   }
 
-// Tambahkan fungsi ini di dalam kelas _HomeState Anda
   /// Fungsi pembantu untuk tampilan info BMR/TDEE pada latar belakang terang (AppColors.screen)
   Widget _buildSimplifiedInfoColumnOnWhite(
       String title, String value, IconData icon) {

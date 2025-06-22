@@ -53,3 +53,7 @@ class UpdateTujuan extends ProfileEvent {
   @override
   List<Object> get props => [tujuan];
 }
+
+class DeleteProfile extends ProfileEvent {
+  const DeleteProfile();
+}

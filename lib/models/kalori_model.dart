@@ -1,24 +1,26 @@
 // lib/models/kalori_model.dart
+
 import 'package:equatable/equatable.dart';
 
 class KaloriModel extends Equatable {
-  // Properti sesuai dengan respons dari endpoint '/hitung-kalori'
-  final double bmi; // Dari "BMI"
-  final double bmr; // Dari "BMR"
-  final double tdee; // Dari "TDEE"
+  final double bmi;
+  final double bmr;
+  final double tdee;
   final String rekomendasiKaloriText;
   final String statusBmi;
   final String statusDatabase;
   final String tujuanText;
+  final String aktivitasText; // <<< TAMBAHKAN PROPERTI INI
 
   const KaloriModel({
     required this.bmi,
     required this.bmr,
     required this.tdee,
-    required this.rekomendasiKaloriText, // Perbaiki nama properti
+    required this.rekomendasiKaloriText,
     required this.statusBmi,
     required this.statusDatabase,
-    required this.tujuanText, // Perbaiki nama properti
+    required this.tujuanText,
+    required this.aktivitasText, // <<< TAMBAHKAN KE KONSTRUKTOR
   });
 
   factory KaloriModel.fromJson(Map<String, dynamic> json) {
@@ -26,15 +28,15 @@ class KaloriModel extends Equatable {
       bmi: (json['BMI'] as num?)?.toDouble() ?? 0.0,
       bmr: (json['BMR'] as num?)?.toDouble() ?? 0.0,
       tdee: (json['TDEE'] as num?)?.toDouble() ?? 0.0,
-      rekomendasiKaloriText:
-          json['rekomendasi_kalori'] as String? ?? '', // Parse sebagai String
+      rekomendasiKaloriText: json['rekomendasi_kalori'] as String? ?? '',
       statusBmi: json['status_bmi'] as String? ?? '',
       statusDatabase: json['status_database'] as String? ?? '',
-      tujuanText: json['tujuan'] as String? ?? '', // Parse sebagai String
+      tujuanText: json['tujuan'] as String? ?? '',
+      aktivitasText:
+          json['aktivitas'] as String? ?? '', // <<< PARSING AKTIVITAS
     );
   }
 
-  // Helper untuk mengekstrak hanya bagian angka dari rekomendasiKaloriText (String)
   int get numericRekomendasiKalori {
     final match = RegExp(r'(\d+)').firstMatch(rekomendasiKaloriText);
     if (match != null) {
@@ -46,11 +48,17 @@ class KaloriModel extends Equatable {
   // Helper untuk membersihkan dan menampilkan string tujuan (jika diperlukan)
   String get cleanedTujuan {
     if (tujuanText.isEmpty) return 'Tidak ditetapkan';
-    // Menghapus "Tujuan Anda adalah " jika ada
     return tujuanText
         .replaceAll('Tujuan Anda adalah ', '')
         .replaceAll('_', ' ')
         .trim();
+  }
+
+  // Helper untuk membersihkan dan menampilkan string aktivitas (jika diperlukan)
+  String get cleanedAktivitas {
+    // <<< TAMBAHKAN HELPER INI
+    if (aktivitasText.isEmpty) return 'Tidak ditetapkan';
+    return aktivitasText.replaceAll('_', ' ').trim();
   }
 
   Map<String, dynamic> toJson() {
@@ -62,6 +70,7 @@ class KaloriModel extends Equatable {
       'status_bmi': statusBmi,
       'status_database': statusDatabase,
       'tujuan': tujuanText,
+      'aktivitas': aktivitasText, // <<< TAMBAHKAN KE TOJSON
     };
   }
 
@@ -74,5 +83,6 @@ class KaloriModel extends Equatable {
         statusBmi,
         statusDatabase,
         tujuanText,
+        aktivitasText, // <<< TAMBAHKAN KE PROPS
       ];
 }

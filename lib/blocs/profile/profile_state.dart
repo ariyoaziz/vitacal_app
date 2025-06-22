@@ -36,10 +36,17 @@ class ProfileError extends ProfileState {
   List<Object> get props => [message];
 }
 
-// --- BARU: Tambahkan state ProfileSuccess ---
 class ProfileSuccess extends ProfileState {
   final String message;
   const ProfileSuccess(this.message);
+  @override
+  List<Object> get props => [message];
+}
+
+// >>>>>> TAMBAHKAN STATE INI <<<<<<
+class ProfileNoChange extends ProfileState {
+  final String message;
+  const ProfileNoChange(this.message);
   @override
   List<Object> get props => [message];
 }

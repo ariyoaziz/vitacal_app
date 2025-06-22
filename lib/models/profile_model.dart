@@ -46,6 +46,10 @@ class ProfileModel extends Equatable {
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    // --- TAMBAHKAN DEBUGGING DI SINI ---
+    print('DEBUG ProfileModel.fromJson: Full JSON received: $json');
+    // --- END DEBUGGING ---
+
     final Map<String, dynamic>? userJson =
         json['user'] as Map<String, dynamic>?;
     if (userJson == null) {
@@ -53,42 +57,65 @@ class ProfileModel extends Equatable {
           'Respons API tidak memiliki kunci "user" atau nilainya null.');
     }
 
+    // --- TAMBAHKAN DEBUGGING DI SINI ---
+    print('DEBUG ProfileModel.fromJson: userJson: $userJson');
+    // --- END DEBUGGING ---
+
+    // Pastikan user_detail ada di dalam userJson, bukan di level root
     final Map<String, dynamic>? userDetailJson =
         userJson['user_detail'] as Map<String, dynamic>?;
 
     UserDetailModel? parsedUserDetail;
     if (userDetailJson != null) {
+      // --- TAMBAHKAN DEBUGGING DI SINI ---
+      print('DEBUG ProfileModel.fromJson: userDetailJson: $userDetailJson');
+      // --- END DEBUGGING ---
       try {
         parsedUserDetail = UserDetailModel.fromJson(userDetailJson);
       } catch (e) {
         print('ERROR parsing user_detail to UserDetailModel: $e');
       }
+    } else {
+      print(
+          'INFO ProfileModel.fromJson: user_detail is null or missing from userJson.');
     }
 
     // Parsing ProfileKaloriModel jika ada (dari endpoint /profile)
-    ProfileKaloriModel? parsedProfileRekomendasiKalori; // <<< PERHATIKAN INI
+    ProfileKaloriModel? parsedProfileRekomendasiKalori;
     if (userDetailJson?['rekomendasi_kalori'] != null &&
         userDetailJson?['rekomendasi_kalori'] is Map<String, dynamic>) {
+      // --- TAMBAHKAN DEBUGGING DI SINI ---
+      print(
+          'DEBUG ProfileModel.fromJson: rekomendasi_kalori JSON: ${userDetailJson!['rekomendasi_kalori']}');
+      // --- END DEBUGGING ---
       try {
         parsedProfileRekomendasiKalori = ProfileKaloriModel.fromJson(
-            // <<< GUNAKAN ProfileKaloriModel.fromJson
-            Map<String, dynamic>.from(userDetailJson!['rekomendasi_kalori']));
+            Map<String, dynamic>.from(userDetailJson['rekomendasi_kalori']));
       } catch (e) {
-        print(
-            'ERROR parsing rekomendasi_kalori to ProfileKaloriModel: $e'); // <<< PESAN ERROR JUGA GANTI
+        print('ERROR parsing rekomendasi_kalori to ProfileKaloriModel: $e');
       }
+    } else {
+      print(
+          'INFO ProfileModel.fromJson: rekomendasi_kalori is null or missing from userDetailJson.');
     }
 
     // Parsing BmiDataModel jika ada
     BmiDataModel? parsedBmiData;
     if (userDetailJson?['bmi_data'] != null &&
         userDetailJson?['bmi_data'] is Map<String, dynamic>) {
+      // --- TAMBAHKAN DEBUGGING DI SINI ---
+      print(
+          'DEBUG ProfileModel.fromJson: bmi_data JSON: ${userDetailJson!['bmi_data']}');
+      // --- END DEBUGGING ---
       try {
         parsedBmiData = BmiDataModel.fromJson(
-            Map<String, dynamic>.from(userDetailJson!['bmi_data']));
+            Map<String, dynamic>.from(userDetailJson['bmi_data']));
       } catch (e) {
         print('ERROR parsing bmi_data to BmiDataModel: $e');
       }
+    } else {
+      print(
+          'INFO ProfileModel.fromJson: bmi_data is null or missing from userDetailJson.');
     }
 
     return ProfileModel(
@@ -100,12 +127,10 @@ class ProfileModel extends Equatable {
       userCreatedAt: userJson['created_at'] as String,
       userUpdatedAt: userJson['updated_at'] as String,
       userDetail: parsedUserDetail,
-      profileRekomendasiKalori:
-          parsedProfileRekomendasiKalori, // <<< GANTI NAMA
+      profileRekomendasiKalori: parsedProfileRekomendasiKalori,
       bmiData: parsedBmiData,
     );
   }
-
   // Getter untuk akses mudah ke data dari UserDetailModel
   String get nama => userDetail?.nama ?? 'Tidak Ada Nama';
   int get umur => userDetail?.umur ?? 0;

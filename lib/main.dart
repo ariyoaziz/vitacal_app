@@ -3,16 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// Import screens
 import 'package:vitacal_app/screen/onboarding/splash_screen.dart';
 
-// Import services
 import 'package:vitacal_app/services/auth_service.dart';
 import 'package:vitacal_app/services/userdetail_service.dart';
 import 'package:vitacal_app/services/kalori_service.dart';
 import 'package:vitacal_app/services/profile_service.dart';
 
-// Import blocs
 import 'package:vitacal_app/blocs/auth/auth_bloc.dart';
 import 'package:vitacal_app/blocs/user_detail/userdetail_bloc.dart';
 import 'package:vitacal_app/blocs/kalori/kalori_bloc.dart';
@@ -52,20 +49,26 @@ class MyApp extends StatelessWidget {
                   RepositoryProvider.of<UserDetailService>(context),
             ),
           ),
-          // Tambahkan KaloriBloc sebagai Bloc
           BlocProvider<KaloriBloc>(
             create: (context) => KaloriBloc(
               calorieService: RepositoryProvider.of<CalorieService>(context),
             ),
           ),
           BlocProvider<ProfileBloc>(
-            create: (context) => ProfileBloc(profileService: ProfileService()),
+            create: (context) => ProfileBloc(
+              profileService: ProfileService(
+                userDetailService:
+                    RepositoryProvider.of<UserDetailService>(context),
+              ),
+              authService: RepositoryProvider.of<AuthService>(
+                  context), // Tambahkan AuthService di sini
+            ),
           ),
         ],
         child: MaterialApp(
           title: 'VitaCal App',
           debugShowCheckedModeBanner: false,
-          home: const SplashScreen(),
+          home: const SplashScreen(), // Halaman awal aplikasi
         ),
       ),
     );

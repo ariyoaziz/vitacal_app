@@ -154,8 +154,9 @@ class UserDetailService {
     return responseData; // Mengembalikan Map mentah
   }
 
+  // >>>>>> METODE deleteUserDetail() INI <<<<<<
   Future<void> deleteUserDetail() async {
-    await _sendAuthenticatedRequest('user-detail', method: 'DELETE');
+    await _sendAuthenticatedRequest('users', method: 'DELETE');
   }
 
   // --- Metode Statis untuk Data Dummy Grafik ---
