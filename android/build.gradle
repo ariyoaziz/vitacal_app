@@ -1,3 +1,20 @@
+// android/build.gradle (Project Level)
+
+buildscript {
+    ext.kotlin_version = '1.9.0' // Pastikan ini 1.9.0 atau versi yang lebih tinggi yang kompatibel
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        // Gunakan versi Android Gradle Plugin yang kompatibel dengan Kotlin 1.9.0
+        // Versi 8.1.4 ini cocok untuk Kotlin 1.9.0 dan tools Android Studio yang lebih baru.
+        classpath 'com.android.tools.build:gradle:8.1.4' 
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -9,9 +26,11 @@ rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
-subprojects {
-    project.evaluationDependsOn(":app")
-}
+// Baris ini sering menyebabkan masalah build di proyek Flutter modern.
+// Kita akan menghapusnya sepenuhnya.
+// subprojects {
+//     project.evaluationDependsOn(":app")
+// }
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir

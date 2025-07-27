@@ -116,8 +116,11 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                           ),
                           SizedBox(height: screenHeight * 0.05),
                           SizedBox(
+                            width: 300,
+                            height: 300,
                             child: Image.asset(
                               'assets/images/forgot_password.png',
+                              fit: BoxFit.contain,
                             ),
                           ),
                           const SizedBox(height: 50),

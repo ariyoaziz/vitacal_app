@@ -13,7 +13,8 @@ class ResetPassword extends StatefulWidget {
   final String phoneNumber;
   final String otpCode;
 
-  const ResetPassword({super.key, required this.phoneNumber, required this.otpCode});
+  const ResetPassword(
+      {super.key, required this.phoneNumber, required this.otpCode});
 
   @override
   State<ResetPassword> createState() => _ResetPasswordState();
@@ -145,8 +146,11 @@ class _ResetPasswordState extends State<ResetPassword> {
                         SizedBox(height: screenHeight * 0.05),
                         // Logo Image
                         SizedBox(
+                          width: 300,
+                          height: 300,
                           child: Image.asset(
                             'assets/images/update_password.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
                         SizedBox(height: screenHeight * 0.05),
