@@ -31,43 +31,30 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
   Future<void> _onLoadProfileData(
       LoadProfileData event, Emitter<ProfileState> emit) async {
+    // Jika data sudah ada, langsung tampilkan
     if (_currentProfileData != null) {
       emit(ProfileLoaded(_currentProfileData!));
       print('DEBUG PROFILE BLOC: Menampilkan data profil yang sudah ada.');
-    } else {
-      emit(ProfileLoading());
-      print('DEBUG PROFILE BLOC: Memulai loading data profil (pertama kali).');
+      return; // Keluar agar tidak fetch ulang
     }
+
+    emit(ProfileLoading());
+    print('DEBUG PROFILE BLOC: Memulai loading data profil (pertama kali).');
 
     try {
       final ProfileModel newProfileData = await profileService.getProfileData();
 
-      if (_currentProfileData != newProfileData) {
-        _currentProfileData = newProfileData;
-        emit(ProfileLoaded(_currentProfileData!));
-        print(
-            'DEBUG PROFILE BLOC: Data profil diperbarui karena ada perubahan dari API.');
-      } else {
-        emit(ProfileLoaded(_currentProfileData!));
-        print(
-            'DEBUG PROFILE BLOC: Data profil tidak berubah pada LoadProfileData, tetap ProfileLoaded.');
-      }
+      _currentProfileData = newProfileData;
+      emit(ProfileLoaded(_currentProfileData!));
+      print('DEBUG PROFILE BLOC: Data profil berhasil dimuat dari API.');
     } on AuthException catch (e) {
-      if (_currentProfileData != null) {
-        emit(ProfileLoaded(_currentProfileData!));
-        emit(ProfileError(e.message));
-      } else {
-        emit(ProfileError(e.message));
-      }
+      print(
+          'DEBUG PROFILE BLOC: Gagal otentikasi saat load profil: ${e.message}');
+      emit(ProfileError(e.message));
     } catch (e) {
-      if (_currentProfileData != null) {
-        emit(ProfileLoaded(_currentProfileData!));
-        emit(ProfileError(
-            'Terjadi kesalahan tidak terduga saat memuat profil: ${e.toString()}'));
-      } else {
-        emit(ProfileError(
-            'Terjadi kesalahan tidak terduga saat memuat profil: ${e.toString()}'));
-      }
+      print('DEBUG PROFILE BLOC: Exception tidak terduga saat load profil: $e');
+      emit(ProfileError(
+          'Terjadi kesalahan saat memuat data profil. Silakan coba lagi.'));
     }
   }
 
@@ -113,6 +100,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           'DEBUG PROFILE BLOC: Error tak terduga saat update berat badan: ${e.toString()}');
     }
   }
+
   Future<void> _onUpdateTinggiBadan(
       UpdateTinggiBadan event, Emitter<ProfileState> emit) async {
     if (_currentProfileData == null) {

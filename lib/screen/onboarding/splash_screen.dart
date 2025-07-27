@@ -1,12 +1,20 @@
-import 'package:flutter/material.dart';
-import 'dart:async'; // Pastikan ini diimpor
-import 'package:flutter_svg/flutter_svg.dart'; // Pastikan ini diimpor
-import 'package:flutter_bloc/flutter_bloc.dart'; // Import ini untuk akses Bloc/RepositoryProvider
-import 'package:vitacal_app/screen/main_page.dart';
+// import utama
+// ignore_for_file: unused_import
 
-// Import halaman yang mungkin dituju
-import 'package:vitacal_app/screen/onboarding/get_started.dart'; // Halaman jika belum login/onboarding
-import 'package:vitacal_app/services/auth_service.dart'; // Import AuthService
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vitacal_app/screen/main_page.dart';
+import 'package:vitacal_app/screen/onboarding/get_started.dart';
+import 'package:vitacal_app/services/auth_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:http/http.dart' as http;
+import 'package:vitacal_app/screen/error/koneksi.dart';
+import 'package:vitacal_app/screen/error/perbaikan.dart';
+import 'package:vitacal_app/services/constants.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -37,19 +45,68 @@ class _SplashScreenState extends State<SplashScreen>
         CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
-
-    // >>>>>> PERUBAHAN LOGIKA UTAMA DI SINI <<<<<<
-    _checkLoginStatus(); // Panggil fungsi pengecekan status login
+    _checkLoginStatus();
   }
 
-  // Fungsi baru untuk memeriksa status login
+  Future<bool> _hasActiveInternet() async {
+    try {
+      print('Mengecek koneksi internet...');
+      final response =
+          await http.get(Uri.parse('https://www.google.com')).timeout(
+                const Duration(seconds: 5),
+              );
+      print('Status code Google: ${response.statusCode}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Gagal koneksi ke internet: $e');
+      return false;
+    }
+  }
+
   Future<void> _checkLoginStatus() async {
-    // Memberikan sedikit delay untuk efek splash screen dan agar animasi selesai
     await Future.delayed(const Duration(seconds: 3));
 
-    // Pastikan context masih valid sebelum melakukan navigasi
-    if (!mounted) return;
+    // 🔌 1. Cek koneksi internet
+    bool hasInternet = await _hasActiveInternet();
+    if (!hasInternet) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const Koneksi()),
+      );
+      return;
+    }
 
+    // 🔧 2. Cek koneksi backend & database
+    try {
+      final response = await http
+          .get(Uri.parse(AppConstants.checkDbEndpoint))
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode != 200) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const Perbaikan()),
+        );
+        return;
+      }
+    } on TimeoutException {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const Perbaikan()),
+      );
+      return;
+    } catch (e) {
+      // Tangani semua error termasuk SocketException dan lainnya
+      print('ERROR KONEKSI BACKEND: $e');
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const Perbaikan()),
+      );
+      return;
+    }
+
+    // ✅ 3. Cek status login via token
+    if (!mounted) return;
     try {
       final authService = RepositoryProvider.of<AuthService>(context);
       final token = await authService.getJwtToken();
@@ -57,53 +114,35 @@ class _SplashScreenState extends State<SplashScreen>
       print('DEBUG SPLASH: Token ditemukan: ${token != null ? "Ya" : "Tidak"}');
 
       if (token != null) {
+        print('DEBUG SPLASH: Verifikasi token ke backend...');
         bool isTokenStillValid =
-            await _verifyTokenWithBackend(token, authService);
+            await authService.verifyTokenWithBackend(token);
+        print('DEBUG SPLASH: Validasi token hasil: $isTokenStillValid');
 
         if (isTokenStillValid && mounted) {
-          print('DEBUG SPLASH: Token valid, mengarahkan ke Home.');
-          Navigator.of(context).pushReplacement(
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const MainPage()),
+            (route) => false,
           );
         } else {
-          print(
-              'DEBUG SPLASH: Token tidak valid/expired, mengarahkan ke GetStarted.');
-          await authService.deleteJwtToken(); // Hapus token kadaluarsa/invalid
-          Navigator.of(context).pushReplacement(
+          await authService.deleteJwtToken();
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const GetStarted()),
+            (route) => false,
           );
         }
       } else {
-        print('DEBUG SPLASH: Tidak ada token, mengarahkan ke GetStarted.');
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const GetStarted()),
+          (route) => false,
         );
       }
     } catch (e) {
-      // Tangani error jika terjadi masalah saat mengakses AuthService atau SharedPreferences
-      print('ERROR SPLASH: Terjadi kesalahan saat memeriksa status login: $e');
-      // Sebagai fallback, arahkan ke GetStarted jika ada error
-      Navigator.of(context).pushReplacement(
+      print('ERROR SPLASH: $e');
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const GetStarted()),
+        (route) => false,
       );
-    }
-  }
-
-  // Fungsi untuk memverifikasi token dengan backend (Opsional tapi Direkomendasikan)
-  // Anda perlu membuat endpoint di backend Anda, misalnya GET /users/verify-token
-  // yang hanya membutuhkan @jwt_required() dan mengembalikan 200 OK jika valid.
-  Future<bool> _verifyTokenWithBackend(
-      String token, AuthService authService) async {
-    try {
-      // Asumsi AuthService memiliki metode verifyToken yang memanggil API backend.
-      // Jika tidak ada, untuk demo, kita asumsikan true.
-      // DI PRODUKSI, HARUS ADA VERIFIKASI DENGAN BACKEND ATAU DEKODE JWT UNTUK CEK KADALUARSA.
-      // Contoh: return await authService.verifyToken(token);
-      return true; // <<< Placeholder: Untuk sekarang, asumsikan token yang ada itu valid
-    } catch (e) {
-      print(
-          'DEBUG SPLASH: Token verification failed in _verifyTokenWithBackend: $e');
-      return false;
     }
   }
 
@@ -122,9 +161,7 @@ class _SplashScreenState extends State<SplashScreen>
           opacity: _fadeAnimation,
           child: ScaleTransition(
             scale: _scaleAnimation,
-            child: SvgPicture.asset(
-              'assets/icons/logo1.svg',
-            ),
+            child: SvgPicture.asset('assets/icons/logo1.svg'),
           ),
         ),
       ),

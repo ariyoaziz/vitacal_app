@@ -21,6 +21,32 @@ class AuthService {
     print('DEBUG AUTH: JWT Token saved to SharedPreferences.');
   }
 
+  Future<bool> verifyTokenWithBackend(String token) async {
+    try {
+      final uri = Uri.parse('${AppConstants.baseUrl}/users/verify-token');
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['valid'] == true;
+      } else {
+        print(
+            'Token tidak valid. Status code: ${response.statusCode}, Body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print("AuthService Error saat verifikasi token: $e");
+      return false;
+    }
+  }
+
   // >>>>>> BARU: Hapus token JWT <<<<<<
   Future<void> deleteJwtToken() async {
     final prefs = await SharedPreferences.getInstance();
