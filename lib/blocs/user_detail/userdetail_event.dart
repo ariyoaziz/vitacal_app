@@ -7,14 +7,13 @@ abstract class UserDetailEvent extends Equatable {
   const UserDetailEvent();
 
   @override
-  // PERBAIKAN: Mengubah tipe kembalian menjadi List<Object?> untuk menangani properti nullable
+  // Tipe kembalian yang benar untuk menangani properti nullable
   List<Object?> get props => [];
 }
 
 /// Event untuk menambah detail pengguna baru.
-/// Biasanya dipanggil saat alur pendaftaran awal untuk menyimpan data detail pengguna.
+/// Dipanggil saat alur pendaftaran awal untuk menyimpan data detail pengguna.
 class AddUserDetail extends UserDetailEvent {
-  final int userId;
   final String nama;
   final int umur;
   final JenisKelamin jenisKelamin;
@@ -24,7 +23,6 @@ class AddUserDetail extends UserDetailEvent {
   final Tujuan? tujuan; // Optional
 
   const AddUserDetail({
-    required this.userId,
     required this.nama,
     required this.umur,
     required this.jenisKelamin,
@@ -35,28 +33,44 @@ class AddUserDetail extends UserDetailEvent {
   });
 
   @override
-  List<Object> get props => [
-        userId,
+  // Menggunakan List<Object?> agar konsisten dengan tipe kembalian kelas abstrak.
+  // Properti nullable (seperti 'tujuan') bisa disertakan langsung, Equatable akan menanganinya.
+  List<Object?> get props => [
         nama,
         umur,
         jenisKelamin,
         beratBadan,
         tinggiBadan,
         aktivitas,
-        tujuan ?? '', // Handle nullable for equatable
+        tujuan, // 'tujuan' bisa langsung disertakan karena List<Object?>
       ];
 }
 
-class LoadUserDetail extends UserDetailEvent {}
+/// Event untuk memuat detail pengguna yang sudah ada.
+class LoadUserDetail extends UserDetailEvent {
+  const LoadUserDetail(); // Tambahkan constructor const jika memungkinkan
 
+  @override
+  List<Object?> get props => []; // Tidak ada properti, jadi kosong
+}
+
+/// Event untuk memperbarui detail pengguna.
 class UpdateUserDetail extends UserDetailEvent {
   final Map<String, dynamic> updates;
 
-  const UpdateUserDetail({required this.updates});
+  const UpdateUserDetail(
+      {required this.updates}); // Tambahkan constructor const
 
   @override
-  List<Object> get props =>
-      [updates]; // Ini tetap List<Object> karena Map tidak nullable di sini
+  // Menggunakan List<Object?> agar konsisten.
+  // 'updates' itu sendiri tidak nullable, tapi List<Object?> bisa menampungnya.
+  List<Object?> get props => [updates];
 }
 
-class DeleteUserDetail extends UserDetailEvent {}
+/// Event untuk menghapus detail pengguna.
+class DeleteUserDetail extends UserDetailEvent {
+  const DeleteUserDetail(); // Tambahkan constructor const
+
+  @override
+  List<Object?> get props => []; // Tidak ada properti, jadi kosong
+}

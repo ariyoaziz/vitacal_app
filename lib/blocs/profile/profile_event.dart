@@ -57,3 +57,9 @@ class UpdateTujuan extends ProfileEvent {
 class DeleteProfile extends ProfileEvent {
   const DeleteProfile();
 }
+
+class UpdateContactInfo extends ProfileEvent {
+  final String email;
+  final String phone;
+  const UpdateContactInfo({required this.email, required this.phone});
+}

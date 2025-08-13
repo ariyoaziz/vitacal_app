@@ -1,41 +1,46 @@
-// ignore_for_file: deprecated_member_use
+// lib/screen/analytics/card_beratgrafik.dart
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures
 
+import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:vitacal_app/themes/colors.dart';
-import 'package:intl/intl.dart'; // Untuk memformat tanggal
-import 'package:intl/date_symbol_data_local.dart'; // Untuk inisialisasi data lokal
 
-/// Widget untuk menampilkan grafik berat badan.
-/// Menerima data berat badan melalui properti 'data'.
+/// Data: [{"date":"YYYY-MM-DD","weight":<num>}]
 class CardBeratGrafik extends StatelessWidget {
-  // Data berat badan yang akan ditampilkan pada grafik.
-  // Diharapkan berupa List of Map dengan format:
-  // [{"date": "YYYY-MM-DD", "weight": VALUE_BERAT}]
   final List<Map<String, dynamic>> data;
 
-  const CardBeratGrafik({super.key, required this.data});
+  /// Callback opsional di header (otomatis tersembunyi kalau null)
+  final VoidCallback? onViewDetail;
+  final VoidCallback? onDownload;
+
+  const CardBeratGrafik({
+    super.key,
+    required this.data,
+    this.onViewDetail,
+    this.onDownload,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Pastikan data lokal diinisialisasi untuk format hari
-    initializeDateFormatting('id_ID', null);
+    try {
+      initializeDateFormatting('id_ID', null);
+    } catch (_) {}
 
-    // Ambil hanya 7 data terakhir, jika data kurang dari 7, ambil semua yang ada.
-    // .reversed.take(7).toList().reversed.toList() adalah cara untuk mengambil N elemen terakhir.
-    final List<Map<String, dynamic>> displayedData =
-        data.length > 7 ? data.sublist(data.length - 7) : List.from(data);
+    // Ambil 7 data terakhir (tua -> terbaru)
+    final displayedData = data.length > 7
+        ? data.sublist(data.length - 7)
+        : List<Map<String, dynamic>>.from(data);
 
-    // Memastikan ada data untuk ditampilkan, jika tidak, tampilkan placeholder.
     if (displayedData.isEmpty) {
       return Card(
         color: AppColors.screen,
-        // Radius kartu konsisten 24, elevation 2
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 2, // Menaikkan elevation untuk kesan kedalaman
+        elevation: 2,
         child: Padding(
-          padding: const EdgeInsets.all(
-              24), // Padding yang lebih besar dan konsisten
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -44,12 +49,31 @@ class CardBeratGrafik extends StatelessWidget {
               Container(
                 height: 200,
                 alignment: Alignment.center,
-                child: Text(
-                  'Tidak ada data berat badan tersedia.',
-                  style: TextStyle(
-                      color: AppColors.darkGrey.withOpacity(0.7),
-                      fontSize: 14), // Gaya teks disesuaikan
-                  textAlign: TextAlign.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.monitor_weight_rounded,
+                        size: 48, color: AppColors.darkGrey.withOpacity(0.35)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Belum ada data berat badan.',
+                      style: TextStyle(
+                        color: AppColors.darkGrey.withOpacity(0.8),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tambahkan catatan berat untuk mulai melihat progresmu.',
+                      style: TextStyle(
+                        color: AppColors.darkGrey.withOpacity(0.6),
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -58,45 +82,70 @@ class CardBeratGrafik extends StatelessWidget {
       );
     }
 
-    // Mengonversi displayedData menjadi FlSpot untuk LineChart
-    final List<FlSpot> spots = List.generate(displayedData.length, (index) {
-      final item = displayedData[index];
-      final double weight = (item['weight'] as num).toDouble();
-      return FlSpot(
-          index.toDouble(), weight); // X-axis sebagai index 0, 1, 2...
+    // Spots
+    final spots = List<FlSpot>.generate(displayedData.length, (i) {
+      final w = (displayedData[i]['weight'] as num?)?.toDouble() ?? 0.0;
+      return FlSpot(i.toDouble(), w);
     });
 
-    // Menentukan nilai minimal dan maksimal Y untuk grafik secara dinamis
-    double minY = (displayedData
-                .map((e) => (e['weight'] as num).toDouble())
-                .reduce((value, element) => value < element ? value : element) -
-            10) // Kurangi 5 untuk margin bawah
-        .floorToDouble();
-    double maxY = (displayedData
-                .map((e) => (e['weight'] as num).toDouble())
-                .reduce((value, element) => value > element ? value : element) +
-            10) // Tambah 5 untuk margin atas
-        .ceilToDouble();
+    // Skala Y yang aman & enak dilihat
+    final weights = spots.map((s) => s.y).toList();
+    double minVal = weights.reduce(math.min);
+    double maxVal = weights.reduce(math.max);
 
-    if (minY < 0) minY = 0; // Memastikan minY tidak kurang dari 0
+    // padding adaptif
+    final range = (maxVal - minVal);
+    final pad = range < 4 ? 3.0 : math.max(4.0, range * 0.12);
+    double minY = (minVal - pad);
+    double maxY = (maxVal + pad);
+    if (minY < 0) minY = 0;
+
+    // interval Y aman (minimal 1)
+    final intervalY = () {
+      final r = (maxY - minY);
+      if (r <= 0) return 1.0;
+      final raw = r / 4;
+      // bulatkan ke 0.5 atau 1 terdekat biar cantik
+      final step =
+          (raw < 5) ? (raw).clamp(1.0, 5.0) : (raw / 5).roundToDouble() * 5;
+      return step <= 0 ? 1.0 : step;
+    }();
+
+    // rata-rata berat ditampilkan sebagai garis referensi
+    final avg = weights.reduce((a, b) => a + b) / weights.length;
+
+    // info terakhir (chip)
+    final last = displayedData.last;
+    final lastW = (last['weight'] as num?)?.toDouble() ?? 0.0;
+    DateTime? lastDate;
+    try {
+      lastDate = DateTime.parse((last['date'] ?? '') as String);
+    } catch (_) {}
 
     return Card(
       color: AppColors.screen,
-      // Radius kartu konsisten 24, elevation 2
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      elevation: 2, // Menaikkan elevation untuk kesan kedalaman
+      elevation: 2,
       child: Padding(
-        padding:
-            const EdgeInsets.all(24), // Padding yang lebih besar dan konsisten
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            const SizedBox(height: 24), // Spasi setelah header
-
-            // Grafik Berat Badan
+            const SizedBox(height: 11),
+            if (lastDate != null)
+              Row(
+                children: [
+                  _miniChip(
+                    icon: Icons.trending_up_rounded,
+                    label:
+                        'Terakhir: ${lastW.toStringAsFixed(1)} kg • ${DateFormat('d MMM yyyy', 'id_ID').format(lastDate)}',
+                  ),
+                ],
+              ),
+            const SizedBox(height: 33),
             AspectRatio(
-              aspectRatio: 1.2, // Aspek rasio sedikit disesuaikan
+              aspectRatio: 1.25,
               child: LineChart(
                 LineChartData(
                   minY: minY,
@@ -106,13 +155,12 @@ class CardBeratGrafik extends StatelessWidget {
                     drawVerticalLine: true,
                     drawHorizontalLine: true,
                     getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey.withOpacity(0.2),
-                      strokeWidth: 0.5,
+                      color: Colors.grey.withOpacity(0.18),
+                      strokeWidth: 0.6,
                     ),
                     getDrawingVerticalLine: (value) => FlLine(
-                      color: Colors.grey
-                          .withOpacity(0.2), // Garis grid vertikal lebih halus
-                      strokeWidth: 0.5,
+                      color: Colors.grey.withOpacity(0.12),
+                      strokeWidth: 0.6,
                     ),
                   ),
                   titlesData: FlTitlesData(
@@ -120,19 +168,14 @@ class CardBeratGrafik extends StatelessWidget {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 50,
-                        interval: (maxY - minY) /
-                            5, // Interval dinamis Y axis (membagi menjadi 4 interval)
-                        getTitlesWidget: (value, meta) {
-                          if (value == minY || value == maxY) {
-                            return Text(
-                                ''); // Tidak menampilkan label min/max agar tidak tumpang tindih
-                          }
+                        reservedSize: 52,
+                        interval: intervalY,
+                        getTitlesWidget: (v, meta) {
+                          if (v < minY || v > maxY) return const SizedBox();
                           return Text(
-                            '${value.toInt()} Kg',
+                            '${v.toStringAsFixed(0)} kg',
                             style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.darkGrey), // Warna teks sumbu
+                                fontSize: 12, color: AppColors.darkGrey),
                           );
                         },
                       ),
@@ -140,27 +183,26 @@ class CardBeratGrafik extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 30, // Ruang lebih untuk label hari
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index >= 0 && index < displayedData.length) {
-                            // Ambil tanggal dari data dan format menjadi DD/MM
-                            final dateString =
-                                displayedData[index]['date'] as String;
-                            final dateTime = DateTime.parse(dateString);
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(
-                                DateFormat('dd/MM').format(
-                                    dateTime), // Output: '09/06', '10/06'
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors
-                                        .darkGrey), // Warna teks tanggal
-                              ),
-                            );
-                          }
-                          return const SizedBox();
+                        reservedSize: 30,
+                        getTitlesWidget: (v, meta) {
+                          final i = v.toInt();
+                          if (i < 0 || i >= displayedData.length)
+                            return const SizedBox();
+                          final ds = (displayedData[i]['date'] ?? '') as String;
+                          DateTime? d;
+                          try {
+                            d = DateTime.parse(ds);
+                          } catch (_) {}
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              d != null
+                                  ? DateFormat('dd/MM', 'id_ID').format(d)
+                                  : '',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.darkGrey),
+                            ),
+                          );
                         },
                       ),
                     ),
@@ -169,37 +211,37 @@ class CardBeratGrafik extends StatelessWidget {
                     rightTitles:
                         AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
-                  borderData: FlBorderData(show: false), // Hapus border grafik
+                  borderData: FlBorderData(show: false),
                   lineBarsData: [
+                    // garis utama
                     LineChartBarData(
                       spots: spots,
                       isCurved: true,
                       barWidth: 3,
-                      // Gradien warna garis
                       gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary,
-                          Colors.green.shade600
-                        ], // Warna gradien garis
+                        colors: [AppColors.primary, Colors.green.shade600],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
                       dotData: FlDotData(
                         show: true,
-                        getDotPainter: (spot, percent, bar, index) =>
-                            FlDotCirclePainter(
-                          radius: 5, // Ukuran titik
-                          color: AppColors.screen, // Warna titik (putih)
-                          strokeWidth: 2,
-                          strokeColor: AppColors.primary, // Warna border titik
-                        ),
+                        getDotPainter: (spot, percent, bar, index) {
+                          final isLast = index == spots.length - 1;
+                          return FlDotCirclePainter(
+                            radius: isLast ? 5.5 : 4,
+                            color: AppColors.screen,
+                            strokeWidth: isLast ? 2.5 : 2,
+                            strokeColor: isLast
+                                ? Colors.green.shade600
+                                : AppColors.primary,
+                          );
+                        },
                       ),
                       belowBarData: BarAreaData(
                         show: true,
                         gradient: LinearGradient(
                           colors: [
-                            AppColors.primary.withOpacity(
-                                0.2), // Area bawah garis transparan
+                            AppColors.primary.withOpacity(0.20),
                             Colors.transparent
                           ],
                           begin: Alignment.topCenter,
@@ -208,37 +250,92 @@ class CardBeratGrafik extends StatelessWidget {
                       ),
                     ),
                   ],
-                  // Tooltip sentuh
+                  // garis rata-rata
+                  extraLinesData: ExtraLinesData(
+                    horizontalLines: [
+                      HorizontalLine(
+                        y: avg,
+                        dashArray: const [6, 6],
+                        color: AppColors.primary.withOpacity(0.7),
+                        strokeWidth: 1.4,
+                        label: HorizontalLineLabel(
+                          show: true,
+                          alignment: Alignment.topRight,
+                          padding: const EdgeInsets.only(right: 6, bottom: 6),
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          labelResolver: (line) =>
+                              'Rata-rata: ${avg.toStringAsFixed(1)} kg',
+                        ),
+                      ),
+                    ],
+                  ),
+                  // interaksi sentuh
                   lineTouchData: LineTouchData(
+                    handleBuiltInTouches: true,
+                    getTouchedSpotIndicator: (bar, spotIndexes) {
+                      return spotIndexes.map((i) {
+                        return TouchedSpotIndicatorData(
+                          FlLine(
+                              color: AppColors.primary.withOpacity(0.35),
+                              strokeWidth: 1),
+                          FlDotData(
+                            show: true,
+                            getDotPainter: (s, p, b, idx) => FlDotCirclePainter(
+                              radius: 6,
+                              color: AppColors.screen,
+                              strokeWidth: 2.8,
+                              strokeColor: AppColors.primary,
+                            ),
+                          ),
+                        );
+                      }).toList();
+                    },
                     touchTooltipData: LineTouchTooltipData(
-                      getTooltipColor: (_) => AppColors.darkGrey
-                          .withOpacity(0.9), // Warna tooltip gelap
-                      tooltipRoundedRadius: 8,
-                      tooltipPadding: const EdgeInsets.all(8),
+                      tooltipRoundedRadius: 10,
+                      tooltipPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      fitInsideHorizontally: true,
+                      fitInsideVertically: true,
+                      getTooltipColor: (_) => AppColors.cream,
                       getTooltipItems: (touchedSpots) {
-                        return touchedSpots.map((spot) {
-                          final int index = spot.spotIndex;
-                          final dateString =
-                              displayedData[index]['date'] as String;
-                          final dateTime = DateTime.parse(dateString);
-                          final formattedDate =
-                              DateFormat('EEEE, d MMM', 'id_ID').format(
-                                  dateTime); // Format tanggal lengkap di tooltip
+                        return touchedSpots.map((t) {
+                          final i = t.spotIndex;
+                          final ds = (displayedData[i]['date'] ?? '') as String;
+                          DateTime? d;
+                          try {
+                            d = DateTime.parse(ds);
+                          } catch (_) {}
+                          final dateText = d != null
+                              ? DateFormat('EEEE, d MMM yyyy', 'id_ID')
+                                  .format(d)
+                              : ds;
 
                           return LineTooltipItem(
-                            '${spot.y.toStringAsFixed(1)} Kg\n$formattedDate', // Tampilkan berat dan tanggal
+                            '${t.y.toStringAsFixed(1)} kg\n',
                             const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white, // Warna teks tooltip putih
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.darkGrey,
                             ),
-                            textAlign: TextAlign.center,
+                            children: [
+                              TextSpan(
+                                text: dateText,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.darkGrey,
+                                ),
+                              ),
+                            ],
+                            textAlign: TextAlign.left,
                           );
                         }).toList();
                       },
                     ),
-                    handleBuiltInTouches:
-                        true, // Biarkan FlChart menangani sentuhan default
                   ),
                 ),
               ),
@@ -249,50 +346,70 @@ class CardBeratGrafik extends StatelessWidget {
     );
   }
 
-  // Fungsi helper untuk header kartu
   Widget _buildHeader() {
     return Row(
       children: [
         Container(
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1), // Background ikon halus
+            color: AppColors.primary.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           padding: const EdgeInsets.all(8),
-          child: const Icon(Icons.monitor_weight_rounded,
-              color: AppColors.primary, size: 24), // Ukuran ikon konsisten
+          child: const Icon(
+            Icons.monitor_weight_rounded,
+            color: AppColors.primary,
+            size: 22,
+          ),
         ),
         const SizedBox(width: 10),
         const Text(
-          'Grafik Berat Badan', // Judul lebih spesifik
+          'Berat Badan',
           style: TextStyle(
             fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
             color: AppColors.darkGrey,
           ),
         ),
         const Spacer(),
-        // Tombol untuk melihat lebih banyak data, jika diperlukan
-        TextButton(
-          onPressed: () {
-            print('Lihat Riwayat Berat Badan diklik');
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: const Text(
-            'Lihat Detail',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+        if (onViewDetail != null)
+          TextButton.icon(
+            onPressed: onViewDetail,
+            label: const Text(
+              'Lihat Detail',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
-        ),
       ],
+    );
+  }
+
+  Widget _miniChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.darkGrey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

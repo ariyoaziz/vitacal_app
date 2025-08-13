@@ -1,3 +1,5 @@
+// lib/screen/onboarding/splash_screen.dart
+
 // import utama
 // ignore_for_file: unused_import
 
@@ -9,12 +11,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:vitacal_app/screen/main_page.dart';
 import 'package:vitacal_app/screen/onboarding/get_started.dart';
-import 'package:vitacal_app/services/auth_service.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:vitacal_app/services/auth_service.dart'; // Pastikan AuthService diimpor
+import 'package:connectivity_plus/connectivity_plus.dart'; // Pastikan ini diimpor jika digunakan
 import 'package:http/http.dart' as http;
 import 'package:vitacal_app/screen/error/koneksi.dart';
 import 'package:vitacal_app/screen/error/perbaikan.dart';
-import 'package:vitacal_app/services/constants.dart';
+import 'package:vitacal_app/services/constants.dart'; // Pastikan AppConstants.checkDbEndpoint ada
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -48,6 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
     _checkLoginStatus();
   }
 
+  /// Mengecek koneksi internet aktif.
   Future<bool> _hasActiveInternet() async {
     try {
       print('Mengecek koneksi internet...');
@@ -57,6 +60,14 @@ class _SplashScreenState extends State<SplashScreen>
               );
       print('Status code Google: ${response.statusCode}');
       return response.statusCode == 200;
+    } on SocketException catch (e) {
+      // Tangani SocketException secara spesifik
+      print('Gagal koneksi ke internet (SocketException): $e');
+      return false;
+    } on TimeoutException {
+      // Tangani TimeoutException secara spesifik
+      print('Gagal koneksi ke internet (TimeoutException): Koneksi timeout.');
+      return false;
     } catch (e) {
       print('Gagal koneksi ke internet: $e');
       return false;
@@ -64,19 +75,19 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkLoginStatus() async {
+    // Beri waktu animasi splash screen tampil
     await Future.delayed(const Duration(seconds: 3));
 
-    // 🔌 1. Cek koneksi internet
     bool hasInternet = await _hasActiveInternet();
     if (!hasInternet) {
       if (!mounted) return;
+      // Navigasi ke halaman error koneksi internet
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const Koneksi()),
       );
       return;
     }
 
-    // 🔧 2. Cek koneksi backend & database
     try {
       final response = await http
           .get(Uri.parse(AppConstants.checkDbEndpoint))
@@ -84,6 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
 
       if (response.statusCode != 200) {
         if (!mounted) return;
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const Perbaikan()),
         );
@@ -95,8 +107,15 @@ class _SplashScreenState extends State<SplashScreen>
         MaterialPageRoute(builder: (context) => const Perbaikan()),
       );
       return;
+    } on SocketException {
+      print(
+          'ERROR KONEKSI BACKEND (SocketException): Tidak bisa terhubung ke server.');
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const Perbaikan()),
+      );
+      return;
     } catch (e) {
-      // Tangani semua error termasuk SocketException dan lainnya
       print('ERROR KONEKSI BACKEND: $e');
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
@@ -105,11 +124,12 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    // ✅ 3. Cek status login via token
     if (!mounted) return;
     try {
+      // Ambil instance AuthService dari Provider/RepositoryProvider
       final authService = RepositoryProvider.of<AuthService>(context);
-      final token = await authService.getJwtToken();
+
+      final token = await authService.getAuthToken();
 
       print('DEBUG SPLASH: Token ditemukan: ${token != null ? "Ya" : "Tidak"}');
 
@@ -120,25 +140,32 @@ class _SplashScreenState extends State<SplashScreen>
         print('DEBUG SPLASH: Validasi token hasil: $isTokenStillValid');
 
         if (isTokenStillValid && mounted) {
+          // Token valid, navigasi ke halaman utama
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const MainPage()),
-            (route) => false,
+            (route) => false, // Hapus semua rute sebelumnya
           );
         } else {
-          await authService.deleteJwtToken();
+          // Token tidak valid (kadaluarsa, dll.), hapus dan navigasi ke GetStarted
+          // --- PERBAIKAN: Ganti deleteJwtToken() menjadi deleteAuthToken() ---
+          await authService.deleteAuthToken();
+          // --- AKHIR PERBAIKAN ---
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const GetStarted()),
             (route) => false,
           );
         }
       } else {
+        // Tidak ada token, navigasi ke GetStarted
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const GetStarted()),
           (route) => false,
         );
       }
     } catch (e) {
-      print('ERROR SPLASH: $e');
+      // Tangani error umum selama proses cek token
+      print('ERROR SPLASH: Terjadi kesalahan saat memeriksa status login: $e');
+      // Navigasi ke GetStarted jika ada error
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const GetStarted()),
         (route) => false,

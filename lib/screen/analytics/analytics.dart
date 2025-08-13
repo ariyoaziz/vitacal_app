@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:vitacal_app/models/userdetail_model.dart';
 import 'package:vitacal_app/screen/analytics/card_beratgrafik.dart';
 import 'package:vitacal_app/screen/analytics/card_kal.dart';
@@ -15,10 +16,15 @@ import 'package:vitacal_app/screen/home/notifikasi.dart';
 import 'package:vitacal_app/screen/analytics/card_berat.dart';
 import 'package:vitacal_app/screen/analytics/card_bmi.dart';
 
+// UserDetail BLoC
 import 'package:vitacal_app/blocs/user_detail/userdetail_event.dart';
 import 'package:vitacal_app/blocs/user_detail/userdetail_state.dart';
 import 'package:vitacal_app/blocs/user_detail/userdetail_bloc.dart';
-import 'package:vitacal_app/services/userdetail_service.dart';
+
+// Riwayat (kalori & grafik berat)
+import 'package:vitacal_app/blocs/riwayat_user/riwayat_user_bloc.dart';
+import 'package:vitacal_app/blocs/riwayat_user/riwayat_user_event.dart';
+import 'package:vitacal_app/blocs/riwayat_user/riwayat_user_state.dart';
 
 class Analytics extends StatefulWidget {
   const Analytics({super.key});
@@ -28,40 +34,33 @@ class Analytics extends StatefulWidget {
 }
 
 class _AnalyticsState extends State<Analytics> {
-  // Dummy data sebaiknya di-mock atau diambil dari service/repository,
-  // bukan langsung di-init di State jika tujuannya untuk mocking data bloc.
-  // Namun, untuk contoh ini, saya biarkan sesuai struktur Anda.
-  final List<Map<String, dynamic>> _dummyWeightHistory =
-      UserDetailService.getDummyWeightHistory();
-  final List<Map<String, dynamic>> _dummyCalorieData =
-      UserDetailService.getDummyCalorieData();
+  double? _pendingBerat;
+  double? _pendingTinggi;
+  bool _isUpdating = false;
 
   @override
   void initState() {
     super.initState();
-    // Memuat data user detail saat widget pertama kali dibuat
-    context.read<UserDetailBloc>().add(LoadUserDetail());
+    // NOTE:
+    // Load awal sudah dipicu dari main.dart.
+    // Kalau kamu ingin tetap aman, kamu bisa biarkan baris di bawah ini,
+    // tapi berpotensi dobel fetch. Maka kita tidak panggil lagi di sini.
+    //
+    // context.read<UserDetailBloc>().add(LoadUserDetail());
+    // context.read<RiwayatUserBloc>().add(const LoadRiwayat(days: 7));
   }
 
   Future<void> _refreshData() async {
-    // Memicu event LoadUserDetail untuk refresh data
     context.read<UserDetailBloc>().add(LoadUserDetail());
-    // Beri sedikit delay untuk feedback visual pada RefreshIndicator
-    await Future.delayed(const Duration(milliseconds: 500));
-    // Memastikan widget masih terpasang sebelum memanggil setState/lainnya
-    if (!mounted) return;
+    context.read<RiwayatUserBloc>().add(const LoadRiwayat(days: 7));
+    await Future.delayed(const Duration(milliseconds: 350));
   }
 
   @override
   Widget build(BuildContext context) {
-    // Penggunaan MediaQuery untuk padding global, tidak untuk setiap elemen.
-    // Fixed padding value lebih disarankan untuk konsistensi desain.
-    // double screenWidth = MediaQuery.of(context).size.width;
-    // double screenHeight = MediaQuery.of(context).size.height;
-    const double iconSize = 24.0; // Ukuran ikon standar
+    const double iconSize = 24.0;
 
     return Scaffold(
-      // Menggunakan warna solid sebagai pengganti withOpacity untuk background
       backgroundColor: const Color.fromARGB(255, 248, 248, 248),
       body: SafeArea(
         child: RefreshIndicator(
@@ -72,22 +71,19 @@ class _AnalyticsState extends State<Analytics> {
           displacement: 60,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            // Padding global yang konsisten
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20.0, // Fixed padding
-              vertical: 20.0,
-            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header dengan ikon (konsisten dengan halaman Profil)
+                // Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
                       icon:
                           SvgPicture.asset("assets/icons/logo.svg", height: 35),
-                      onPressed: () {/* No action for logo */},
+                      onPressed: () {},
                     ),
                     Row(
                       children: [
@@ -114,48 +110,60 @@ class _AnalyticsState extends State<Analytics> {
                 ),
                 const SizedBox(height: 33),
 
-                // Judul Halaman "Analytics"
+                // Title
                 Row(
                   children: [
-                    SvgPicture.asset("assets/icons/analytics.svg",
-                        height: 28), // Ukuran ikon disesuaikan
+                    SvgPicture.asset("assets/icons/analytics.svg", height: 28),
                     const SizedBox(width: 11),
                     const Text(
                       "Analytics",
                       style: TextStyle(
-                          fontSize: 22, // Ukuran font judul lebih besar
-                          fontWeight: FontWeight.w700, // Lebih tebal
-                          color: AppColors.darkGrey),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.darkGrey,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 33),
 
-                // Menggunakan BlocConsumer untuk mendengarkan state UserDetailBloc
+                // User Detail (Berat/Tinggi & BMI)
                 BlocConsumer<UserDetailBloc, UserDetailState>(
                   listener: (context, state) {
                     if (state is UserDetailError) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text('Error: ${state.message}'),
-                            backgroundColor: Colors.red),
+                          content: Text('Error: ${state.message}'),
+                          backgroundColor: Colors.red,
+                        ),
                       );
+                      setState(() {
+                        _isUpdating = false;
+                        _pendingBerat = null;
+                        _pendingTinggi = null;
+                      });
                     } else if (state is UserDetailUpdateSuccess) {
-                      // Tampilkan dialog sukses otomatis setelah update berhasil
                       CustomAlertDialog.show(
-                        // Pastikan 'CustomAlertDialog' adalah nama kelas yang benar, bukan 'CostumAlertDialog'
                         context: context,
                         title: "Pembaruan Berhasil!",
                         message: "Data profil Anda telah berhasil diperbarui.",
                         type: DialogType.success,
-                        showButton: false, // Tidak ada tombol OK
-                        autoDismissDuration: const Duration(
-                            seconds: 2), // Menghilang setelah 2 detik
+                        showButton: false,
+                        autoDismissDuration: const Duration(seconds: 2),
                       );
+                      setState(() {
+                        _isUpdating = false;
+                        _pendingBerat = null;
+                        _pendingTinggi = null;
+                      });
+
+                      // Opsional: kalau belum diset di main.dart, kita bisa trigger riwayat dari sini juga
+                      context
+                          .read<RiwayatUserBloc>()
+                          .add(const LoadRiwayat(days: 7));
                     }
                   },
                   builder: (context, state) {
-                    // Menangani semua state yang membawa userDetail (Loaded, AddSuccess, UpdateSuccess)
                     UserDetailModel? userDetail;
                     if (state is UserDetailLoaded) {
                       userDetail = state.userDetail;
@@ -168,101 +176,161 @@ class _AnalyticsState extends State<Analytics> {
                     if (state is UserDetailLoading ||
                         state is UserDetailInitial) {
                       return const Center(child: CircularProgressIndicator());
-                    } else if (userDetail != null) {
-                      // Hitung BMI hanya jika userDetail tersedia
-                      double heightInMeter = userDetail.tinggiBadan / 100;
-                      double bmi = userDetail.beratBadan /
-                          (heightInMeter * heightInMeter);
-
-                      return Column(
-                        children: [
-                          Row(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start, // Sejajarkan di atas
-                            children: [
-                              Expanded(
-                                child: BeratCard(
-                                  label: "Berat Sekarang",
-                                  icon: "assets/icons/weight_sekarang.svg",
-                                  value: userDetail.beratBadan,
-                                  onUpdate: (value) {
-                                    // Mengirim event UpdateUserDetail untuk berat_badan
-                                    context.read<UserDetailBloc>().add(
-                                          UpdateUserDetail(
-                                              updates: {'berat_badan': value}),
-                                        );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(
-                                  width: 16), // Spasi antar kartu lebih besar
-                              Expanded(
-                                child: BeratCard(
-                                  label: "Tinggi Badan",
-                                  icon:
-                                      "assets/icons/weight_sekarang.svg", // Ganti dengan ikon tinggi badan jika ada
-                                  value: userDetail.tinggiBadan,
-                                  onUpdate: (value) {
-                                    // Mengirim event UpdateUserDetail untuk tinggi_badan
-                                    context.read<UserDetailBloc>().add(
-                                          UpdateUserDetail(
-                                              updates: {'tinggi_badan': value}),
-                                        );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24), // Spasi antar baris kartu
-                          BmiCard(bmi: bmi),
-                          const SizedBox(height: 24), // Spasi setelah BMI Card
-                          KaloriChartCard(data: _dummyCalorieData),
-                          const SizedBox(
-                              height: 24), // Spasi setelah Kalori Card
-                          CardBeratGrafik(data: _dummyWeightHistory),
-                        ],
-                      );
-                    } else if (state is UserDetailError) {
-                      // Tampilan error yang lebih informatif
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline,
-                                color: Colors.red, size: 48),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Gagal memuat data: ${state.message}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                  color: Colors.red, fontSize: 16),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _refreshData,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Coba Lagi'),
-                            ),
-                          ],
-                        ),
+                    }
+                    if (userDetail == null) {
+                      return const Center(
+                        child: Text(
+                            'Tidak ada data detail pengguna untuk ditampilkan.'),
                       );
                     }
-                    // Fallback jika state tidak terduga (misal UserDetailInitial tanpa data)
-                    return const Center(
-                      child: Text(
-                          'Tidak ada data detail pengguna untuk ditampilkan.'),
+
+                    final beratDisplay =
+                        _pendingBerat ?? (userDetail.beratBadan ?? 0.0);
+                    final tinggiDisplay =
+                        _pendingTinggi ?? (userDetail.tinggiBadan ?? 0.0);
+
+                    final hMeter = tinggiDisplay / 100.0;
+                    final bmi = (beratDisplay > 0 && hMeter > 0)
+                        ? double.parse((beratDisplay / (hMeter * hMeter))
+                            .toStringAsFixed(2))
+                        : 0.0;
+
+                    return Stack(
+                      children: [
+                        Column(
+                          children: [
+                            // Kartu input Berat & Tinggi
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: BeratCard(
+                                    label: "Berat Sekarang",
+                                    icon: "assets/icons/weight_sekarang.svg",
+                                    value: beratDisplay,
+                                    onUpdate: (value) {
+                                      setState(() {
+                                        _pendingBerat = value;
+                                        _isUpdating = true;
+                                      });
+                                      context.read<UserDetailBloc>().add(
+                                          UpdateUserDetail(
+                                              updates: {'berat_badan': value}));
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: BeratCard(
+                                    label: "Tinggi Badan",
+                                    icon: "assets/icons/weight_sekarang.svg",
+                                    value: tinggiDisplay,
+                                    onUpdate: (value) {
+                                      setState(() {
+                                        _pendingTinggi = value;
+                                        _isUpdating = true;
+                                      });
+                                      context.read<UserDetailBloc>().add(
+                                              UpdateUserDetail(updates: {
+                                            'tinggi_badan': value
+                                          }));
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // BMI
+                            BmiCard(bmi: bmi),
+                            const SizedBox(height: 24),
+
+                            // Kalori Harian (Riwayat)
+                            BlocBuilder<RiwayatUserBloc, RiwayatUserState>(
+                              builder: (context, rState) {
+                                if (rState is RiwayatUserLoading ||
+                                    rState is RiwayatUserInitial) {
+                                  return _loadingCard(title: 'Kalori Harian');
+                                } else if (rState is RiwayatUserLoaded) {
+                                  return KaloriChartCard(
+                                    data: rState.calorieHistory,
+                                    onViewDetail: () {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Fitur Lihat Detail coming soon')),
+                                      );
+                                    },
+                                  );
+                                } else if (rState is RiwayatUserError) {
+                                  return _errorCard(
+                                    title: 'Kalori Harian',
+                                    message:
+                                        'Gagal memuat data kalori: ${rState.message}',
+                                    onRetry: () => context
+                                        .read<RiwayatUserBloc>()
+                                        .add(const LoadRiwayat(days: 7)),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Grafik Berat (riwayat 7 entri terbaru yang ada)
+                            BlocBuilder<RiwayatUserBloc, RiwayatUserState>(
+                              builder: (context, rState) {
+                                if (rState is RiwayatUserLoading ||
+                                    rState is RiwayatUserInitial) {
+                                  return _loadingCard(
+                                      title: 'Grafik Berat Badan');
+                                } else if (rState is RiwayatUserLoaded) {
+                                  return CardBeratGrafik(
+                                    data: rState.weightHistory,
+                                    onViewDetail: () {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Fitur Lihat Detail coming soon')),
+                                      );
+                                    },
+                                  );
+                                } else if (rState is RiwayatUserError) {
+                                  return _errorCard(
+                                    title: 'Grafik Berat Badan',
+                                    message:
+                                        'Gagal memuat riwayat berat badan: ${rState.message}',
+                                    onRetry: () => context
+                                        .read<RiwayatUserBloc>()
+                                        .add(const LoadRiwayat(days: 7)),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                        if (_isUpdating)
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black.withOpacity(0.08),
+                              alignment: Alignment.center,
+                              child: const CircularProgressIndicator(),
+                            ),
+                          ),
+                      ],
                     );
                   },
                 ),
                 const SizedBox(height: 50),
+
                 Center(
                   child: SizedBox(
-                    width: MediaQuery.of(context).size.width *
-                        0.75, // Batasi lebar teks
-                    child: Text(
+                    width: MediaQuery.of(context).size.width * 0.75,
+                    child: const Text(
                       "Yuk, cek kalorimu dan terus melangkah menuju hidup sehat!",
                       style: TextStyle(
                         color: AppColors.darkGrey,
@@ -278,6 +346,55 @@ class _AnalyticsState extends State<Analytics> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ===== Helper UI kecil =====
+
+  Widget _loadingCard({required String title}) {
+    return Card(
+      color: AppColors.screen,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 2,
+      child: const Padding(
+        padding: EdgeInsets.all(24),
+        child: SizedBox(
+          height: 220,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+    );
+  }
+
+  Widget _errorCard({
+    required String title,
+    required String message,
+    required VoidCallback onRetry,
+  }) {
+    return Card(
+      color: AppColors.screen,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.darkGrey,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(message, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 8),
+            TextButton(onPressed: onRetry, child: const Text('Coba Lagi')),
+          ],
         ),
       ),
     );

@@ -219,20 +219,17 @@ class _HomeState extends State<Home> {
     double screenWidth = MediaQuery.of(context).size.width;
     const double iconSize = 24.0;
 
-    DateTime? userCreatedAtDate;
-    try {
-      if (_currentProfileModel != null &&
-          _currentProfileModel!.userCreatedAt.isNotEmpty) {
-        userCreatedAtDate = DateTime.parse(_currentProfileModel!.userCreatedAt);
-      }
-    } catch (e) {
-      print('DEBUG HOME: Error parsing userCreatedAt from ProfileModel: $e');
-    }
+    final DateTime? userCreatedAtDateFromModel =
+        _currentProfileModel?.userCreatedAt;
 
-    bool isDateBeforeAccountCreation = userCreatedAtDate != null &&
-        _selectedDate.isBefore(DateTime(userCreatedAtDate.year,
-            userCreatedAtDate.month, userCreatedAtDate.day));
+// Pastikan _selectedDate juga sudah didefinisikan di State Anda.
 
+    bool isDateBeforeAccountCreation = userCreatedAtDateFromModel !=
+            null && // <<< Gunakan variabel yang benar
+        _selectedDate.isBefore(DateTime(
+            userCreatedAtDateFromModel.year, // <<< Gunakan variabel yang benar
+            userCreatedAtDateFromModel.month,
+            userCreatedAtDateFromModel.day));
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 248, 248, 248),
       body: SafeArea(
@@ -272,7 +269,7 @@ class _HomeState extends State<Home> {
                         print('DEBUG HOME: BMR: ${_currentKaloriModel!.bmr}');
                         print('DEBUG HOME: TDEE: ${_currentKaloriModel!.tdee}');
                         print(
-                            'DEBUG HOME: Tujuan Text (dari KaloriModel): ${_currentKaloriModel!.tujuanText}');
+                            'DEBUG HOME: Tujuan Text (dari KaloriModel): ${_currentKaloriModel!.tujuanRekomendasiSistem}');
                       }
                     });
                   }
@@ -423,7 +420,6 @@ class _HomeState extends State<Home> {
                   displayMessageSpans
                       .add(const TextSpan(text: "Selamat datang di VitaCal!"));
                 }
-
                 return SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.symmetric(
@@ -909,14 +905,14 @@ class _HomeState extends State<Home> {
                                 _buildSimplifiedInfoColumnOnWhite(
                                   "BMR",
                                   _currentKaloriModel != null
-                                      ? "${_currentKaloriModel!.bmr.round()} Kkal"
+                                      ? "${_currentKaloriModel!.bmr?.round() ?? 'N/A'} Kkal" // <<< PERBAIKAN DI SINI
                                       : "N/A",
                                   Icons.calculate,
                                 ),
                                 _buildSimplifiedInfoColumnOnWhite(
                                   "TDEE",
                                   _currentKaloriModel != null
-                                      ? "${_currentKaloriModel!.tdee.round()} Kkal"
+                                      ? "${_currentKaloriModel!.tdee?.round() ?? 'N/A'} Kkal" // <<< PERBAIKAN DI SINI
                                       : "N/A",
                                   Icons.directions_run,
                                 ),
@@ -972,8 +968,8 @@ class _HomeState extends State<Home> {
 
                             // Penjelasan rekomendasi
                             if (_currentKaloriModel != null &&
-                                _currentKaloriModel!
-                                    .rekomendasiKaloriText.isNotEmpty &&
+                                _currentKaloriModel!.rekomendasiKaloriHarian !=
+                                    null && // Cek apakah nilainya sendiri tidak null
                                 _currentProfileModel != null)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1020,20 +1016,24 @@ class _HomeState extends State<Home> {
                                                 "Angka ini dihitung dari Total Pengeluaran Energi Harian (TDEE) Anda sebesar "),
                                         TextSpan(
                                           text:
-                                              "${_currentKaloriModel!.tdee.round()} Kkal",
+                                              "${_currentKaloriModel!.tdee?.round() ?? 0} Kkal", // <<< PERBAIKAN DI SINI
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.primary),
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
                                         TextSpan(text: ", yang kemudian "),
                                         TextSpan(
                                           text: _getCalorieAdjustmentText(
-                                              _currentKaloriModel!
-                                                  .numericRekomendasiKalori,
-                                              _currentKaloriModel!.tdee),
+                                            _currentKaloriModel!
+                                                .numericRekomendasiKalori,
+                                            _currentKaloriModel!.tdee ??
+                                                0.0, // <<< FIX HERE: Provide a default value (e.g., 0.0) if tdee is null
+                                          ),
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.primary),
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
                                         const TextSpan(
                                             text:
@@ -1057,14 +1057,17 @@ class _HomeState extends State<Home> {
                                         const TextSpan(
                                             text: "Tujuan utama Anda adalah "),
                                         TextSpan(
-                                          text: _formatSnakeCaseToTitleCase(
-                                              _currentProfileModel!
-                                                      .userDetail?.tujuan
-                                                      ?.toDisplayString() ??
-                                                  'mencapai berat ideal'),
+                                          // --- PERBAIKAN DI SINI ---
+                                          // Ambil tujuan dari _currentKaloriModel dan gunakan toDisplayString()
+                                          text: _currentKaloriModel
+                                                  ?.tujuanRekomendasiSistem
+                                                  ?.toDisplayString() ??
+                                              'mencapai berat ideal', // Fallback jika null
+                                          // --- AKHIR PERBAIKAN ---
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.primary),
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
                                         const TextSpan(
                                             text:

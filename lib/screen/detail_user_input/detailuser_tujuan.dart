@@ -78,7 +78,6 @@ class _DetailuserTujuanState extends State<DetailuserTujuan> {
 
     context.read<UserDetailBloc>().add(
           AddUserDetail(
-            userId: updatedFormData.userId,
             nama: updatedFormData.nama!,
             umur: updatedFormData.umur!,
             jenisKelamin: updatedFormData.jenisKelamin!,

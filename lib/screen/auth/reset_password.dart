@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart'; // Import bloc
 import 'package:flutter_svg/flutter_svg.dart';
@@ -153,7 +155,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                             fit: BoxFit.contain,
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.05),
+                        SizedBox(height: screenHeight * 0.03),
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
@@ -179,7 +181,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                         SizedBox(height: screenHeight * 0.05),
                         // Input Password Baru
                         SizedBox(
-                          width: screenWidth * 0.8,
+                          width: screenWidth * 0.9,
                           child: TextField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
@@ -197,7 +199,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               prefixIcon: Padding(
-                                padding: const EdgeInsets.all(15.0),
+                                padding: const EdgeInsets.all(16),
                                 child: SvgPicture.asset(
                                   'assets/icons/sandi.svg',
                                   width: 20,
@@ -223,7 +225,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                         SizedBox(height: 33),
                         // Input Konfirmasi Password
                         SizedBox(
-                          width: screenWidth * 0.8,
+                          width: screenWidth * 0.9,
                           child: TextField(
                             controller: _confirmPasswordController,
                             obscureText:
@@ -242,7 +244,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               prefixIcon: Padding(
-                                padding: const EdgeInsets.all(15.0),
+                                padding: const EdgeInsets.all(16),
                                 child: SvgPicture.asset(
                                   'assets/icons/sandi.svg',
                                   width: 20,
@@ -265,68 +267,87 @@ class _ResetPasswordState extends State<ResetPassword> {
                             ),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.05),
-                        // Tombol Ubah Kata Sandi
+                        SizedBox(height: screenHeight * 0.08),
+                        // Di dalam SizedBox yang membungkus ElevatedButton
                         SizedBox(
-                          width: screenWidth * 0.8,
-                          child: Ink(
+                          width: double
+                              .infinity, // Ambil lebar penuh (seperti tombol lain)
+                          child: Container(
                             decoration: BoxDecoration(
                               gradient: AppColors.greenGradient,
                               borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(
+                                      0.3), // Warna shadow yang konsisten
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
                             ),
                             child: ElevatedButton(
-                              onPressed: () {
-                                if (_isLoading) return; // Mencegah double tap
+                              onPressed: _isLoading
+                                  ? null
+                                  : () {
+                                      // Logika validasi dan pemicu BLoC
+                                      final passwordError = _validatePassword(
+                                          _passwordController.text);
+                                      final confirmPasswordError =
+                                          _validateConfirmPassword(
+                                              _confirmPasswordController.text);
 
-                                // Validasi input di sisi client
-                                final passwordError =
-                                    _validatePassword(_passwordController.text);
-                                final confirmPasswordError =
-                                    _validateConfirmPassword(
-                                        _confirmPasswordController.text);
+                                      if (passwordError != null) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(passwordError)),
+                                        );
+                                        return;
+                                      }
+                                      if (confirmPasswordError != null) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content:
+                                                  Text(confirmPasswordError)),
+                                        );
+                                        return;
+                                      }
 
-                                if (passwordError != null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(passwordError)),
-                                  );
-                                  return;
-                                }
-                                if (confirmPasswordError != null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text(confirmPasswordError)),
-                                  );
-                                  return;
-                                }
-
-                                // Jika validasi lolos, panggil BLoC
-                                context.read<AuthBloc>().add(
-                                      ResetPasswordEvent(
-                                        phoneNumber: widget.phoneNumber,
-                                        otpCode: widget
-                                            .otpCode, // <-- Gunakan OTP dari widget
-                                        newPassword: _passwordController.text,
-                                      ),
-                                    );
-                              },
+                                      // Panggil BLoC jika validasi lolos
+                                      context.read<AuthBloc>().add(
+                                            ResetPasswordEvent(
+                                              phoneNumber: widget.phoneNumber,
+                                              otpCode: widget.otpCode,
+                                              newPassword:
+                                                  _passwordController.text,
+                                            ),
+                                          );
+                                    },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
+                                backgroundColor: Colors
+                                    .transparent, // Latar belakang transparan untuk gradien
+                                shadowColor: Colors
+                                    .transparent, // Hilangkan shadow default
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
+                                  borderRadius: BorderRadius.circular(
+                                      30), // Bentuk tombol konsisten
                                 ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16), // Padding vertikal konsisten
                               ),
-                              child: _isLoading // Tampilkan loading indicator
-                                  ? CircularProgressIndicator(
-                                      color: Colors.white)
+                              child: _isLoading
+                                  ? const CircularProgressIndicator(
+                                      // Indicator loading putih
+                                      color: Colors.white,
+                                    )
                                   : const Text(
-                                      "Ubah Kata Sandi",
+                                      "Ubah Kata Sandi", // Teks tombol
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
+                                        fontSize: 18, // Ukuran font konsisten
+                                        fontWeight: FontWeight
+                                            .w700, // Berat font konsisten
                                       ),
                                     ),
                             ),
@@ -339,6 +360,7 @@ class _ResetPasswordState extends State<ResetPassword> {
               ),
               if (_isLoading) // Overlay loading
                 Container(
+                  // ignore: duplicate_ignore
                   // ignore: deprecated_member_use
                   color: Colors.black.withOpacity(0.5),
                   child: Center(

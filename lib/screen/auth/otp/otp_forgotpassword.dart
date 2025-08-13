@@ -43,6 +43,7 @@ class _OtpForgotpasswordState extends State<OtpForgotpassword> {
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
+        style: const TextStyle(fontSize: 24),
         decoration: InputDecoration(
           counterText: '',
           border: OutlineInputBorder(
@@ -136,13 +137,13 @@ class _OtpForgotpasswordState extends State<OtpForgotpassword> {
                             color: AppColors.primary,
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.05),
+                        SizedBox(height: screenHeight * 0.03),
                         SizedBox(
                           child: Image.asset(
                             'assets/images/otp.png',
                           ),
                         ),
-                        const SizedBox(height: 50),
+                        const SizedBox(height: 11),
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
@@ -157,16 +158,25 @@ class _OtpForgotpasswordState extends State<OtpForgotpassword> {
                               ),
                               TextSpan(
                                 text:
-                                    "whatsapp kamu, untuk verifikasi password\n",
+                                    "whatsapp kamu, untuk verifikasi password\n\n",
                                 style: TextStyle(
                                   color: AppColors.darkGrey,
                                   fontSize: 13,
                                 ),
                               ),
+                              TextSpan(
+                                text: widget
+                                    .phoneNumber, // Tampilkan nomor HP di sini
+                                style: const TextStyle(
+                                  color: AppColors.primary, // Warna konsisten
+                                  fontSize: 18, // Ukuran font menonjol
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.08),
+                        SizedBox(height: screenHeight * 0.03),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -181,7 +191,7 @@ class _OtpForgotpasswordState extends State<OtpForgotpassword> {
                         ),
                         SizedBox(height: screenHeight * 0.08),
                         SizedBox(
-                          width: screenWidth * 0.8,
+                          width: screenWidth * 0.9,
                           child: Ink(
                             decoration: BoxDecoration(
                               gradient: AppColors.greenGradient,
@@ -221,7 +231,7 @@ class _OtpForgotpasswordState extends State<OtpForgotpassword> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                    const EdgeInsets.symmetric(vertical: 16),
                               ),
                               child: _isLoading
                                   ? CircularProgressIndicator(
@@ -230,8 +240,8 @@ class _OtpForgotpasswordState extends State<OtpForgotpassword> {
                                       "Konfirmasi",
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                             ),

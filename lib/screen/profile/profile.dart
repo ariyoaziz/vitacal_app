@@ -1,21 +1,36 @@
+// lib/screen/profile/profile.dart
+// ignore_for_file: deprecated_member_use, unused_field, unnecessary_null_comparison
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-import 'package:vitacal_app/screen/widgets/costum_dialog.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:vitacal_app/screen/profile/edit_profile_detail.dart';
+
 import 'package:vitacal_app/themes/colors.dart';
+import 'package:vitacal_app/screen/widgets/costum_dialog.dart';
 import 'package:vitacal_app/screen/home/notifikasi.dart';
 import 'package:vitacal_app/screen/home/kalender.dart';
+import 'package:vitacal_app/screen/onboarding/splash_screen.dart';
+import 'package:vitacal_app/screen/auth/forgot_password.dart';
 
+import 'package:vitacal_app/models/enums.dart';
+import 'package:vitacal_app/models/profile_model.dart';
+import 'package:vitacal_app/models/kalori_model.dart';
+import 'package:vitacal_app/utils/dialog_helpers.dart';
+
+// Blocs
 import 'package:vitacal_app/blocs/profile/profile_bloc.dart';
 import 'package:vitacal_app/blocs/profile/profile_event.dart';
 import 'package:vitacal_app/blocs/profile/profile_state.dart';
-import 'package:vitacal_app/models/enums.dart';
-import 'package:vitacal_app/models/profile_model.dart';
-import 'package:vitacal_app/utils/dialog_helpers.dart';
+import 'package:vitacal_app/blocs/user_detail/userdetail_bloc.dart';
+import 'package:vitacal_app/blocs/user_detail/userdetail_event.dart';
+import 'package:vitacal_app/blocs/kalori/kalori_bloc.dart';
+import 'package:vitacal_app/blocs/kalori/kalori_state.dart';
+import 'package:vitacal_app/blocs/riwayat_user/riwayat_user_bloc.dart';
+import 'package:vitacal_app/blocs/riwayat_user/riwayat_user_event.dart';
 
-import 'package:vitacal_app/screen/onboarding/splash_screen.dart'; // Asumsi SplashScreen adalah halaman awal
-import 'package:vitacal_app/screen/auth/forgot_password.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -25,21 +40,37 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
+  // state kecil buat UX saat update inline
+  double? _pendingBerat;
+  double? _pendingTinggi;
+  bool _isUpdating = false;
+
   @override
   void initState() {
     super.initState();
+    // inisialisasi locale agar DateFormat 'id_ID' aman
+    try {
+      initializeDateFormatting('id_ID', null);
+    } catch (_) {}
+    // load profil saat masuk
     context.read<ProfileBloc>().add(const LoadProfileData());
   }
 
   Future<void> _refreshData() async {
     context.read<ProfileBloc>().add(const LoadProfileData());
+    // sekalian segarkan detail & riwayat biar halaman lain juga konsisten
+    context.read<UserDetailBloc>().add(LoadUserDetail());
+    context.read<RiwayatUserBloc>().add(const LoadRiwayat(days: 7));
   }
 
-  Widget _buildInfoRow(String label, String value,
-      {bool isBold = false,
-      Color? valueColor,
-      Widget? trailingWidget,
-      VoidCallback? onTap}) {
+  Widget _buildInfoRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? valueColor,
+    Widget? trailingWidget,
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -47,10 +78,7 @@ class _ProfileState extends State<Profile> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: const TextStyle(color: Colors.black87),
-            ),
+            Text(label, style: const TextStyle(color: Colors.black87)),
             Expanded(
               child: Align(
                 alignment: Alignment.centerRight,
@@ -109,13 +137,11 @@ class _ProfileState extends State<Profile> {
                   showButton: false,
                   autoDismissDuration: const Duration(seconds: 2),
                 );
-                // Navigasi setelah akun dihapus atau berhasil keluar
+
+                // kalau logout/hapus, arahkan ke splash
                 if (state.message.contains('dihapus') ||
                     state.message.contains('keluar')) {
-                  // Cek pesan untuk hapus atau keluar
                   Future.delayed(const Duration(seconds: 2), () {
-                    // Reset data autentikasi atau token di sini jika ada AuthBloc atau AuthService yang menyimpannya
-                    // Contoh: context.read<AuthBloc>().add(const LogoutEvent());
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
                           builder: (context) => const SplashScreen()),
@@ -123,6 +149,19 @@ class _ProfileState extends State<Profile> {
                     );
                   });
                 }
+
+                // sinkronkan halaman lain TANPA refresh manual:
+                // - detail user (berat/tinggi)
+                // - riwayat (kalori & grafik berat)
+                context.read<UserDetailBloc>().add(LoadUserDetail());
+                context.read<RiwayatUserBloc>().add(const LoadRiwayat(days: 7));
+
+                // reset state kecil
+                setState(() {
+                  _isUpdating = false;
+                  _pendingBerat = null;
+                  _pendingTinggi = null;
+                });
               } else if (state is ProfileNoChange) {
                 CustomAlertDialog.show(
                   context: context,
@@ -132,6 +171,11 @@ class _ProfileState extends State<Profile> {
                   showButton: false,
                   autoDismissDuration: const Duration(seconds: 2),
                 );
+                setState(() {
+                  _isUpdating = false;
+                  _pendingBerat = null;
+                  _pendingTinggi = null;
+                });
               }
             },
             builder: (context, state) {
@@ -141,63 +185,45 @@ class _ProfileState extends State<Profile> {
                 return const Center(child: CircularProgressIndicator());
               } else if (state is ProfileLoaded) {
                 profileData = state.profileData;
-              } else if (state is ProfileError) {
+              } else if (state is ProfileError ||
+                  state is ProfileSuccess ||
+                  state is ProfileNoChange) {
+                // gunakan cache terakhir dari bloc
                 profileData = context.read<ProfileBloc>().currentProfileData;
-                if (profileData == null) {
-                  return const Center(
-                      child: Text('Gagal memuat atau menampilkan profil.'));
-                }
-              } else if (state is ProfileSuccess || state is ProfileNoChange) {
-                profileData = context.read<ProfileBloc>().currentProfileData;
-                print(
-                    'INFO Profile Screen: Displaying data from bloc.currentProfileData due to ${state.runtimeType}.');
-                if (profileData == null) {
-                  return const Center(child: Text('Memuat ulang profil...'));
-                }
               } else {
-                print(
-                    'INFO Profile Screen: Unexpected state type: ${state.runtimeType}. Showing fallback message.');
-                profileData = null;
+                // fallback
+                return const Center(child: Text('Memuat profil...'));
               }
 
               if (profileData == null || profileData.userDetail == null) {
-                print(
-                    'INFO Profile Screen: profileData or userDetail is null after all state handling. Showing fallback "Tidak ada data profil".');
                 return const Center(
-                  child: Text('Tidak ada data profil untuk ditampilkan.'),
-                );
+                    child: Text('Tidak ada data profil untuk ditampilkan.'));
               }
 
               final userDetail = profileData.userDetail!;
-
-              final String formattedUmur = "${userDetail.umur} Tahun";
+              final String formattedUmur = "${userDetail.umur ?? 0} Tahun";
               final String statusAkun =
                   profileData.verified ? "Terverifikasi" : "Belum Diverifikasi";
               final Color statusAkunColor =
                   profileData.verified ? AppColors.primary : Colors.red;
 
+              // format tanggal akun dibuat
               String tanggalAkunDibuat = 'Tidak tersedia';
               try {
-                DateTime createdAt = DateTime.parse(profileData.userCreatedAt);
-                tanggalAkunDibuat =
-                    DateFormat('d MMMM y', 'id_ID').format(createdAt);
-              } catch (e) {
-                print('Error parsing userCreatedAt in UI: $e');
-              }
-
-              print(
-                  'DEBUG PROFILE: Rendering UI with profileData: $profileData');
+                if (profileData.userCreatedAt != null) {
+                  tanggalAkunDibuat = DateFormat('d MMMM y', 'id_ID')
+                      .format(profileData.userCreatedAt);
+                }
+              } catch (_) {}
 
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 20.0,
-                ),
+                    horizontal: 20.0, vertical: 20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header dengan ikon
+                    // Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -232,11 +258,11 @@ class _ProfileState extends State<Profile> {
                     ),
 
                     const SizedBox(height: 33),
-                    // --- KARTU 1: Profil Utama & Info Akun ---
+
+                    // KARTU: Profil & Info Akun
                     Card(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
+                          borderRadius: BorderRadius.circular(24)),
                       elevation: 1,
                       color: AppColors.screen,
                       child: Padding(
@@ -245,13 +271,22 @@ class _ProfileState extends State<Profile> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    print('Ubah Foto Profil diklik');
-                                  },
-                                  child: CircleAvatar(
+                            InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditProfileDetailPage(
+                                      initialNama: userDetail.nama,
+                                      initialUmur: userDetail.umur ?? 0,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
                                     radius: 32,
                                     backgroundImage:
                                         userDetail.profileImageBytes != null
@@ -261,13 +296,8 @@ class _ProfileState extends State<Profile> {
                                                     'assets/images/user.png')
                                                 as ImageProvider,
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      print('Ubah Nama/Umur diklik');
-                                    },
+                                  const SizedBox(width: 16),
+                                  Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -284,25 +314,21 @@ class _ProfileState extends State<Profile> {
                                         Text(
                                           profileData.username,
                                           style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey,
-                                          ),
+                                              fontSize: 14, color: Colors.grey),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           formattedUmur,
                                           style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey,
-                                          ),
+                                              fontSize: 14, color: Colors.grey),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
-                                const Icon(Icons.chevron_right,
-                                    color: Colors.grey),
-                              ],
+                                  const Icon(Icons.chevron_right,
+                                      color: Colors.grey),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 33),
                             const Divider(
@@ -324,14 +350,19 @@ class _ProfileState extends State<Profile> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 33),
 
-                    const Text("Detail Pribadi & Target",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.darkGrey)),
+                    const Text(
+                      "Detail Pribadi & Target",
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.darkGrey),
+                    ),
                     const SizedBox(height: 16),
+
+                    // KARTU: Detail & Target
                     Card(
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24)),
@@ -345,7 +376,7 @@ class _ProfileState extends State<Profile> {
                           children: [
                             _buildInfoRow(
                               'Berat Badan',
-                              '${userDetail.beratBadan.toStringAsFixed(1)} Kg',
+                              '${userDetail.beratBadan?.toStringAsFixed(1) ?? 'N/A'} Kg',
                               isBold: true,
                               trailingWidget: const Icon(Icons.chevron_right,
                                   color: Colors.grey),
@@ -353,11 +384,15 @@ class _ProfileState extends State<Profile> {
                                 showUpdateValueDialog(
                                   context: context,
                                   title: 'Ubah Berat Badan',
-                                  initialValue: userDetail.beratBadan,
+                                  initialValue: userDetail.beratBadan ?? 0.0,
                                   minValue: 30.0,
                                   maxValue: 200.0,
                                   unit: 'Kg',
                                   onSave: (value) {
+                                    setState(() {
+                                      _pendingBerat = value;
+                                      _isUpdating = true;
+                                    });
                                     context
                                         .read<ProfileBloc>()
                                         .add(UpdateBeratBadan(value));
@@ -371,7 +406,7 @@ class _ProfileState extends State<Profile> {
                             const SizedBox(height: 11),
                             _buildInfoRow(
                               'Tinggi Badan',
-                              '${userDetail.tinggiBadan.toStringAsFixed(1)} cm',
+                              '${userDetail.tinggiBadan?.toStringAsFixed(1) ?? 'N/A'} cm',
                               isBold: true,
                               trailingWidget: const Icon(Icons.chevron_right,
                                   color: Colors.grey),
@@ -379,11 +414,15 @@ class _ProfileState extends State<Profile> {
                                 showUpdateValueDialog(
                                   context: context,
                                   title: 'Ubah Tinggi Badan',
-                                  initialValue: userDetail.tinggiBadan,
+                                  initialValue: userDetail.tinggiBadan ?? 0.0,
                                   minValue: 100.0,
                                   maxValue: 250.0,
                                   unit: 'cm',
                                   onSave: (value) {
+                                    setState(() {
+                                      _pendingTinggi = value;
+                                      _isUpdating = true;
+                                    });
                                     context
                                         .read<ProfileBloc>()
                                         .add(UpdateTinggiBadan(value));
@@ -411,6 +450,7 @@ class _ProfileState extends State<Profile> {
                                   displayString: (jk) => jk.toDisplayString(),
                                 );
                                 if (newValue != null) {
+                                  setState(() => _isUpdating = true);
                                   context
                                       .read<ProfileBloc>()
                                       .add(UpdateJenisKelamin(newValue));
@@ -421,67 +461,56 @@ class _ProfileState extends State<Profile> {
                             const Divider(
                                 height: 1, color: Color.fromARGB(25, 0, 0, 0)),
                             const SizedBox(height: 11),
-                            _buildInfoRow(
-                              'Aktivitas',
-                              userDetail.aktivitas.toDisplayString(),
-                              isBold: true,
-                              trailingWidget: const Icon(Icons.chevron_right,
-                                  color: Colors.grey),
-                              onTap: () async {
-                                final Aktivitas? newValue =
-                                    await showUpdateEnumDialog<Aktivitas>(
-                                  context: context,
-                                  title: 'Ubah Tingkat Aktivitas',
-                                  initialValue: userDetail.aktivitas,
-                                  values: Aktivitas.values,
-                                  displayString: (akt) => akt.toDisplayString(),
-                                );
-                                if (newValue != null) {
-                                  context
-                                      .read<ProfileBloc>()
-                                      .add(UpdateAktivitas(newValue));
+
+                            // Tujuan (ambil dari KaloriBloc bila ada, fallback ke userDetail)
+                            BlocBuilder<KaloriBloc, KaloriState>(
+                              builder: (context, kaloriState) {
+                                KaloriModel? kaloriData;
+                                if (kaloriState is KaloriLoaded) {
+                                  kaloriData = kaloriState.kaloriModel;
                                 }
+                                final tujuanTxt = kaloriData
+                                        ?.tujuanRekomendasiSistem
+                                        ?.toDisplayString() ??
+                                    userDetail.tujuan?.toDisplayString() ??
+                                    'Tidak ditetapkan';
+                                return _buildInfoRow('Tujuan', tujuanTxt,
+                                    isBold: true);
                               },
                             ),
-                            const SizedBox(height: 11),
-                            const Divider(
-                                height: 1, color: Color.fromARGB(25, 0, 0, 0)),
-                            const SizedBox(height: 11),
-                            _buildInfoRow(
-                              'Tujuan',
-                              userDetail.tujuan?.toDisplayString() ??
-                                  'Tidak ditetapkan',
-                              isBold: true,
-                              trailingWidget: const Icon(Icons.chevron_right,
-                                  color: Colors.grey),
-                              onTap: () async {
-                                final Tujuan? newValue =
-                                    await showUpdateEnumDialog<Tujuan>(
-                                  context: context,
-                                  title: 'Ubah Tujuan',
-                                  initialValue: userDetail.tujuan,
-                                  values: Tujuan.values,
-                                  displayString: (t) => t.toDisplayString(),
-                                );
-                                if (newValue != null) {
-                                  context
-                                      .read<ProfileBloc>()
-                                      .add(UpdateTujuan(newValue));
-                                }
-                              },
-                            ),
+
+                            if (userDetail.targetBeratBadan != null) ...[
+                              const SizedBox(height: 11),
+                              const Divider(
+                                  height: 1,
+                                  color: Color.fromARGB(25, 0, 0, 0)),
+                              const SizedBox(height: 11),
+                              _buildInfoRow(
+                                'Target Berat Badan',
+                                '${userDetail.targetBeratBadan?.toStringAsFixed(1) ?? 'N/A'} Kg',
+                                isBold: true,
+                                trailingWidget: const Icon(Icons.chevron_right,
+                                    color: Colors.grey),
+                                onTap: () {},
+                              ),
+                            ],
                           ],
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 33),
 
-                    const Text("Analisis Kesehatan",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.darkGrey)),
+                    const Text(
+                      "Analisis Kesehatan",
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.darkGrey),
+                    ),
                     const SizedBox(height: 16),
+
+                    // KARTU: Analisis
                     Card(
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24)),
@@ -513,11 +542,10 @@ class _ProfileState extends State<Profile> {
                                   color: Color.fromARGB(25, 0, 0, 0)),
                               const SizedBox(height: 11),
                             ],
-                            if (profileData.profileRekomendasiKalori !=
-                                null) ...[
+                            if (profileData.rekomendasiKaloriData != null) ...[
                               _buildInfoRow(
                                 'Kalori Harian',
-                                '${profileData.profileRekomendasiKalori!.numericRekomendasiKalori} Kkal',
+                                '${profileData.rekomendasiKaloriData!.rekomendasiKaloriHarian?.round() ?? 0} Kkal',
                                 isBold: true,
                               ),
                               const SizedBox(height: 11),
@@ -527,8 +555,9 @@ class _ProfileState extends State<Profile> {
                               const SizedBox(height: 11),
                               _buildInfoRow(
                                 'BMR',
-                                profileData.profileRekomendasiKalori!.bmr
-                                    .toInt()
+                                (profileData.rekomendasiKaloriData!.bmr
+                                            ?.toInt() ??
+                                        'N/A')
                                     .toString(),
                                 isBold: true,
                               ),
@@ -539,14 +568,16 @@ class _ProfileState extends State<Profile> {
                               const SizedBox(height: 11),
                               _buildInfoRow(
                                 'TDEE',
-                                profileData.profileRekomendasiKalori!.tdee
-                                    .toInt()
+                                (profileData.rekomendasiKaloriData!.tdee
+                                            ?.toInt() ??
+                                        'N/A')
                                     .toString(),
                                 isBold: true,
                               ),
+                              const SizedBox(height: 11),
                             ],
                             if (profileData.bmiData == null &&
-                                profileData.profileRekomendasiKalori == null)
+                                profileData.rekomendasiKaloriData == null)
                               const Center(
                                 child: Text(
                                     'Data analisis kesehatan tidak tersedia.',
@@ -557,13 +588,80 @@ class _ProfileState extends State<Profile> {
                       ),
                     ),
                     const SizedBox(height: 33),
-
-                    const Text("Privasi dan Keamanan",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.darkGrey)),
+                    const Text(
+                      "Tentang Aplikasi",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkGrey,
+                      ),
+                    ),
                     const SizedBox(height: 16),
+                    Card(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
+                      elevation: 1,
+                      color: AppColors.screen,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildInfoRow(
+                              'VitaCal Versi',
+                              'v1.0.0',
+                              isBold: true,
+                            ),
+                            const SizedBox(height: 11),
+                            const Divider(
+                                height: 1, color: Color.fromARGB(25, 0, 0, 0)),
+                            const SizedBox(height: 11),
+                            _buildInfoRow(
+                              'Profil Pembuat',
+                              '',
+                              trailingWidget: const Icon(Icons.chevron_right,
+                                  color: Colors.grey),
+                              onTap: () {},
+                            ),
+                            const SizedBox(height: 11),
+                            const Divider(
+                                height: 1, color: Color.fromARGB(25, 0, 0, 0)),
+                            const SizedBox(height: 11),
+                            _buildInfoRow(
+                              'Laporkan Bug',
+                              '',
+                              trailingWidget: const Icon(Icons.chevron_right,
+                                  color: Colors.grey),
+                              onTap: () {},
+                            ),
+                            const SizedBox(height: 11),
+                            const Divider(
+                                height: 1, color: Color.fromARGB(25, 0, 0, 0)),
+                            const SizedBox(height: 11),
+                            _buildInfoRow(
+                              'Beri Penilaian',
+                              '',
+                              trailingWidget: const Icon(Icons.chevron_right,
+                                  color: Colors.grey),
+                              onTap: () {},
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 33),
+                    const Text(
+                      "Privasi dan Keamanan",
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.darkGrey),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // KARTU: Privasi & Keamanan
                     Card(
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24)),
@@ -590,31 +688,24 @@ class _ProfileState extends State<Profile> {
                                     color: AppColors.darkGrey),
                               ),
                               onTap: () {
-                                print('Ganti Kata Sandi diklik');
-                                // >>>>>> IMPLEMENTASI DI SINI: DIALOG PERINGATAN <<<<<<
                                 CustomAlertDialog.show(
                                   context: context,
                                   title: "Ganti Kata Sandi",
                                   message:
                                       "Anda akan diarahkan ke halaman untuk mengubah kata sandi Anda. Lanjutkan?",
-                                  type: DialogType
-                                      .warning, // Gunakan tipe warning
+                                  type: DialogType.warning,
                                   buttonText: "Lanjutkan",
                                   onButtonPressed: () {
-                                    // Ini akan dipanggil jika pengguna menekan "Lanjutkan"
                                     Navigator.pushReplacement(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            const ForgotPassword(), // Halaman ganti kata sandi
-                                      ),
+                                          builder: (context) =>
+                                              const ForgotPassword()),
                                     );
                                   },
                                   showButton: true,
-                                  secondaryButtonText: "Batal", // Tombol Batal
-                                  onSecondaryButtonPressed: () {
-                                    print('Ganti Kata Sandi dibatalkan.');
-                                  },
+                                  secondaryButtonText: "Batal",
+                                  onSecondaryButtonPressed: () {},
                                 );
                               },
                             ),
@@ -635,22 +726,17 @@ class _ProfileState extends State<Profile> {
                                     color: AppColors.darkGrey),
                               ),
                               onTap: () {
-                                print('Keluar diklik');
-                                // >>>>>> IMPLEMENTASI DI SINI: DIALOG KONFIRMASI KELUAR <<<<<<
                                 CustomAlertDialog.show(
                                   context: context,
                                   title: "Konfirmasi Keluar",
                                   message:
                                       "Apakah Anda yakin ingin keluar dari akun Anda?",
-                                  type: DialogType
-                                      .warning, // Tipe warning untuk konfirmasi keluar
+                                  type: DialogType.warning,
                                   buttonText: "Keluar",
                                   onButtonPressed: () {
-                                    // Ini dipanggil jika pengguna menekan "Keluar"
                                     context
                                         .read<ProfileBloc>()
                                         .add(const ResetProfileData());
-                                    // Kemudian navigasi ke halaman login/onboarding
                                     Navigator.of(context).pushAndRemoveUntil(
                                       MaterialPageRoute(
                                           builder: (context) =>
@@ -660,9 +746,7 @@ class _ProfileState extends State<Profile> {
                                   },
                                   showButton: true,
                                   secondaryButtonText: "Batal",
-                                  onSecondaryButtonPressed: () {
-                                    print('Keluar dibatalkan.');
-                                  },
+                                  onSecondaryButtonPressed: () {},
                                 );
                               },
                             ),
@@ -679,11 +763,11 @@ class _ProfileState extends State<Profile> {
                               title: const Text(
                                 'Hapus Akun',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0XFFFF0000)),
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0XFFFF0000),
+                                ),
                               ),
                               onTap: () {
-                                print('Hapus Akun diklik');
                                 CustomAlertDialog.show(
                                   context: context,
                                   title: "Konfirmasi Hapus Akun",
@@ -698,9 +782,7 @@ class _ProfileState extends State<Profile> {
                                   },
                                   showButton: true,
                                   secondaryButtonText: "Batal",
-                                  onSecondaryButtonPressed: () {
-                                    print('Hapus Akun dibatalkan.');
-                                  },
+                                  onSecondaryButtonPressed: () {},
                                 );
                               },
                             ),
@@ -708,28 +790,26 @@ class _ProfileState extends State<Profile> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 50),
                     Center(
                       child: Column(
-                        children: [
-                          const Text("Dengan melanjutkan, Anda menyetujui",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 12, color: AppColors.darkGrey)),
-                          const SizedBox(height: 6),
-                          GestureDetector(
-                            onTap: () {
-                              print('Syarat dan Ketentuan diklik');
-                            },
-                            child: const Text(
-                              "Syarat & Ketentuan serta Kebijakan Privasi",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.darkGrey,
-                                decoration: TextDecoration.underline,
-                              ),
+                        children: const [
+                          Text(
+                            "Dengan melanjutkan, Anda menyetujui",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.darkGrey),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            "Syarat & Ketentuan serta Kebijakan Privasi",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.darkGrey,
+                              decoration: TextDecoration.underline,
                             ),
                           ),
                         ],

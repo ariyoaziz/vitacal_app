@@ -1,162 +1,276 @@
+// lib/screen/analytics/card_kal.dart
 // ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:vitacal_app/themes/colors.dart';
-import 'package:intl/intl.dart'; // Untuk memformat tanggal
-import 'package:intl/date_symbol_data_local.dart'; // Untuk inisialisasi data lokal
 
-/// Widget untuk menampilkan grafik kalori harian.
-/// Menerima data kalori melalui properti 'data'.
-class KaloriChartCard extends StatelessWidget {
-  // Data kalori yang akan ditampilkan pada grafik.
-  // Diharapkan berupa List of Map dengan format:
-  // [{"date": "YYYY-MM-DD", "calories": VALUE_KALORI}]
+class KaloriChartCard extends StatefulWidget {
   final List<Map<String, dynamic>> data;
+  final VoidCallback? onViewDetail;
+  final VoidCallback? onDownload;
 
-  const KaloriChartCard({super.key, required this.data});
+  const KaloriChartCard({
+    super.key,
+    required this.data,
+    this.onViewDetail,
+    this.onDownload,
+  });
+
+  @override
+  State<KaloriChartCard> createState() => _KaloriChartCardState();
+}
+
+class _KaloriChartCardState extends State<KaloriChartCard> {
+  final GlobalKey _chartKey = GlobalKey();
+  OverlayEntry? _tooltipEntry;
+  int? _touchedGroupIndex;
+
+  @override
+  void dispose() {
+    _removeTooltip();
+    super.dispose();
+  }
+
+  void _removeTooltip() {
+    _tooltipEntry?.remove();
+    _tooltipEntry = null;
+  }
+
+  void _showTooltipAt(Offset localPos, String text) {
+    _removeTooltip();
+
+    final box = _chartKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    final global = box.localToGlobal(localPos);
+
+    _tooltipEntry = OverlayEntry(
+      builder: (ctx) => Positioned(
+        left: global.dx - 30,
+        top: global.dy - 150,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.cream,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            constraints: const BoxConstraints(maxWidth: 240),
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: AppColors.darkGrey,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_tooltipEntry!);
+    Future.delayed(const Duration(seconds: 2), _removeTooltip);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Pastikan data lokal diinisialisasi untuk format hari
-    initializeDateFormatting('id_ID', null);
+    try {
+      initializeDateFormatting('id_ID', null);
+    } catch (_) {}
 
-    // Ambil hanya 7 hari terakhir dari data untuk tampilan mingguan
-    // Jika data tidak lebih dari 7, ambil semua yang ada
-    final List<Map<String, dynamic>> weeklyData =
-        data.length > 7 ? data.sublist(data.length - 7) : List.from(data);
+    // 1) Range Senin–Minggu minggu ini
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final monday =
+        today.subtract(Duration(days: (today.weekday - DateTime.monday)));
+    final weekDates = List.generate(7, (i) => monday.add(Duration(days: i)));
+    final weekIso =
+        weekDates.map((d) => DateFormat('yyyy-MM-dd').format(d)).toList();
 
-    // Memastikan ada data untuk ditampilkan, jika tidak, tampilkan placeholder.
-    if (weeklyData.isEmpty) {
-      return Card(
-        color: AppColors.screen,
-        // Radius kartu konsisten 24, elevation 2
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(
-              24), // Padding yang lebih besar dan konsisten
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              Container(
-                height: 200,
-                alignment: Alignment.center,
-                child: Text(
-                  'Tidak ada data kalori mingguan tersedia.',
-                  style: TextStyle(
-                      color: AppColors.darkGrey.withOpacity(0.7),
-                      fontSize: 14), // Gaya teks disesuaikan
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+    // 2) Index data by date
+    final Map<String, Map<String, dynamic>> byDate = {};
+    for (final e in widget.data) {
+      final k = (e['date'] as String?) ?? '';
+      if (k.isNotEmpty) byDate[k] = e;
     }
 
-    // Mengonversi weeklyData menjadi BarChartGroupData
+    // 3) Bentuk 7 item fix Sen–Ming
+    final List<Map<String, dynamic>> weeklyData = [];
+    for (final key in weekIso) {
+      final raw = byDate[key];
+      final consumed = (raw?['calories'] as num?)?.toDouble() ?? 0.0;
+      final recommended = (raw?['recommended'] as num?)?.toDouble() ?? 0.0;
+      final deficit =
+          (raw?['deficit'] as num?)?.toDouble() ?? (recommended - consumed);
+      final isBeforeAccount = (raw?['isBeforeAccount'] == true) ||
+          (raw?['is_before_account'] == true);
+
+      weeklyData.add({
+        'date': key,
+        'calories': consumed,
+        'recommended': recommended,
+        'deficit': deficit,
+        'isBeforeAccount': isBeforeAccount,
+      });
+    }
+
+    // 4) Skala & rata-rata rekomendasi (tanpa “paksa bagi 7” kalau data belum ada)
+    double maxY = 0.0;
+    double sumRecommended = 0.0;
+    int countRecommended = 0;
+    double lastNonZeroRecommended = 0.0;
+
+    for (final e in weeklyData) {
+      final consumed = (e['calories'] as double);
+      final recRaw = (e['recommended'] as double);
+      final isBefore = e['isBeforeAccount'] == true;
+
+      if (consumed > maxY) maxY = consumed;
+      if (recRaw > maxY) maxY = recRaw;
+
+      if (isBefore) continue;
+
+      final recEff = recRaw > 0
+          ? recRaw
+          : (lastNonZeroRecommended > 0 ? lastNonZeroRecommended : 0.0);
+      if (recEff > 0) {
+        sumRecommended += recEff;
+        countRecommended += 1;
+        lastNonZeroRecommended = recEff;
+      }
+    }
+
+    // buffer + baseline skala
+    maxY = ((maxY + 400).clamp(1200.0, double.infinity)).toDouble();
+
+    final double avgRecommended =
+        countRecommended > 0 ? (sumRecommended / countRecommended) : 0.0;
+
+    // 5) Satu rod per hari (konsumsi), background rod = rekomendasi
     final List<BarChartGroupData> barGroups =
-        List.generate(weeklyData.length, (index) {
-      final item = weeklyData[index];
-      final double calories = (item['calories'] as num).toDouble();
-      final Color barColor = AppColors.primary;
+        List.generate(weeklyData.length, (i) {
+      final item = weeklyData[i];
+      final consumed = (item['calories'] as double);
+      final recommended = (item['recommended'] as double);
+      final before = item['isBeforeAccount'] == true;
+
+      final bool isTouched = _touchedGroupIndex == i;
+
       return BarChartGroupData(
-        x: index,
+        x: i,
+        barsSpace: 6,
         barRods: [
           BarChartRodData(
-            toY: calories,
-            width: 18,
+            toY: consumed,
+            width: isTouched ? 26 : 24,
             borderRadius: BorderRadius.circular(6),
+            borderSide: isTouched
+                ? const BorderSide(color: Colors.white, width: 1.2)
+                : BorderSide.none,
             gradient: LinearGradient(
-              colors: [barColor.withOpacity(0.8), barColor],
+              colors: [
+                (before
+                    ? Colors.grey.withOpacity(0.25)
+                    : AppColors.primary.withOpacity(isTouched ? 1.0 : 0.85)),
+                (before ? Colors.grey.withOpacity(0.35) : AppColors.primary),
+              ],
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
             ),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: recommended,
+              color: Colors.grey.withOpacity(0.45),
+            ),
           ),
         ],
-        // showingTooltipIndicators: [], // Dihapus untuk menggunakan touchTooltipData
       );
     });
 
-    // Menentukan nilai maksimal Y untuk grafik dari weeklyData
-    // Menambahkan sedikit buffer di atas nilai tertinggi
-    double maxY = weeklyData
-        .map((e) => (e['calories'] as num).toDouble())
-        .reduce((value, element) => value > element ? value : element);
-    if (maxY < 1000)
-      maxY =
-          1000; // Pastikan minimal maxY agar skala tidak terlalu rapat untuk nilai kecil
-    maxY += 500; // Buffer 500 kalori di atas nilai tertinggi
-
     return Card(
       color: AppColors.screen,
-      // Radius kartu konsisten 24, elevation 2
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 2,
       child: Padding(
-        padding:
-            const EdgeInsets.all(24), // Padding yang lebih besar dan konsisten
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            const SizedBox(height: 24),
-            // Bar Chart
+            _buildHeader(context),
+            const SizedBox(height: 33),
             AspectRatio(
-              aspectRatio: 1.2, // Aspek rasio sedikit disesuaikan
+              aspectRatio: 1.2,
               child: BarChart(
+                // POSISIONAL DULU, key kemudian:
                 BarChartData(
+                  maxY: maxY,
+                  barGroups: barGroups,
                   barTouchData: BarTouchData(
                     enabled: true,
-                    touchTooltipData: BarTouchTooltipData(
-                      tooltipRoundedRadius: 8,
-                      tooltipPadding: const EdgeInsets.all(8),
-                      tooltipMargin: 8,
-                      tooltipHorizontalAlignment: FLHorizontalAlignment.center,
-                      tooltipBorderRadius: BorderRadius.circular(8),
-                      getTooltipColor: (_) => AppColors.darkGrey
-                          .withOpacity(0.9), // Warna tooltip gelap
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        // Mengambil tanggal dari data asli untuk tooltip
-                        final dateString =
-                            weeklyData[groupIndex]['date'] as String;
-                        final dateTime = DateTime.parse(dateString);
-                        final formattedDate = DateFormat('EEEE, d MMM', 'id_ID')
-                            .format(
-                                dateTime); // Format tanggal lengkap di tooltip
-
-                        return BarTooltipItem(
-                          '${rod.toY.toInt()} Kkal\n$formattedDate', // Tampilkan kalori dan tanggal
-                          const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: Colors.white, // Warna teks tooltip putih
-                          ),
-                          textAlign: TextAlign.center,
-                        );
-                      },
+                    handleBuiltInTouches: false, // kita pakai tooltip custom
+                    touchExtraThreshold: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 200,
                     ),
+                    touchCallback: (event, response) {
+                      if (event is FlPointerExitEvent ||
+                          event is FlTapUpEvent ||
+                          event is FlPanEndEvent) {
+                        setState(() => _touchedGroupIndex = null);
+                        _removeTooltip();
+                        return;
+                      }
+
+                      final spot = response?.spot;
+                      if (spot == null) return;
+
+                      final i = spot.touchedBarGroupIndex;
+                      setState(() => _touchedGroupIndex = i);
+
+                      final row = weeklyData[i];
+                      final dateStr = (row['date'] as String?) ?? '';
+                      DateTime? dt;
+                      try {
+                        dt = DateTime.parse(dateStr);
+                      } catch (_) {}
+                      final tanggal = (dt != null)
+                          ? DateFormat('EEEE, d MMM yyyy', 'id_ID').format(dt)
+                          : dateStr;
+
+                      final bool isBefore = (row['isBeforeAccount'] == true);
+                      final double consumed =
+                          ((row['calories'] ?? 0) as num).toDouble();
+                      final double recommended =
+                          ((row['recommended'] ?? 0) as num).toDouble();
+
+                      final text = isBefore
+                          ? 'Belum ada progres'
+                          : '$tanggal\n'
+                              '• Konsumsi: ${consumed.toInt()} Kkal\n'
+                              '• Rekomendasi: ${recommended.toInt()} Kkal';
+
+                      final Offset localPos =
+                          event.localPosition ?? Offset.zero;
+                      _showTooltipAt(localPos, text);
+                    },
                   ),
                   titlesData: FlTitlesData(
                     show: true,
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 40,
-                        interval: (maxY / 4)
-                            .roundToDouble(), // Interval sumbu Y otomatis dibagi 4
+                        reservedSize: 44,
+                        interval: (maxY / 4).clamp(200.0, 800.0).toDouble(),
                         getTitlesWidget: (value, meta) {
-                          if (value == 0)
-                            return const Text(''); // Jangan tampilkan 0
+                          if (value <= 0) return const SizedBox();
                           return Text(
-                            '${value.toInt()}',
+                            value.toInt().toString(),
                             style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.darkGrey), // Warna teks sumbu
+                                fontSize: 12, color: AppColors.darkGrey),
                           );
                         },
                       ),
@@ -164,71 +278,80 @@ class KaloriChartCard extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 30, // Ruang lebih untuk label hari
+                        reservedSize: 30,
                         getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index >= 0 && index < weeklyData.length) {
-                            final dateString =
-                                weeklyData[index]['date'] as String;
-                            final dateTime = DateTime.parse(dateString);
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                DateFormat('EE', 'id_ID').format(
-                                    dateTime), // Output: Sen, Sel, Rab, dst.
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color:
-                                        AppColors.darkGrey), // Warna teks hari
-                              ),
-                            );
-                          }
-                          return const SizedBox();
+                          final i = value.toInt();
+                          if (i < 0 || i >= weeklyData.length)
+                            return const SizedBox();
+                          final ds = weeklyData[i]['date'] as String;
+                          DateTime? d;
+                          try {
+                            d = DateTime.parse(ds);
+                          } catch (_) {}
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              d != null
+                                  ? DateFormat('EEE', 'id_ID').format(d)
+                                  : '',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.darkGrey),
+                            ),
+                          );
                         },
                       ),
                     ),
-                    topTitles:
-                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles:
-                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
                   ),
                   gridData: FlGridData(
                     show: true,
                     drawHorizontalLine: true,
-                    drawVerticalLine: false, // Hanya garis horizontal
-                    getDrawingHorizontalLine: (value) {
-                      return FlLine(
-                        color: Colors.grey.withOpacity(
-                            0.2), // Garis grid horizontal lebih halus
-                        strokeWidth: 0.5,
-                      );
-                    },
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: Colors.grey.withOpacity(0.2),
+                      strokeWidth: 0.5,
+                    ),
                   ),
-                  borderData: FlBorderData(show: false), // Hapus border grafik
-                  maxY: maxY,
-                  barGroups: barGroups,
-                  // Garis target horizontal
-                  extraLinesData: ExtraLinesData(horizontalLines: [
-                    HorizontalLine(
-                      y: 2000, // Contoh target kalori
-                      color: AppColors.primary
-                          .withOpacity(0.7), // Warna garis target
-                      strokeWidth: 1.5,
-                      dashArray: [5, 5], // Garis putus-putus
-                      label: HorizontalLineLabel(
-                        show: true,
-                        alignment: Alignment.topRight,
-                        padding: const EdgeInsets.only(right: 5, bottom: 5),
-                        style: TextStyle(
+                  borderData: FlBorderData(show: false),
+                  extraLinesData: ExtraLinesData(
+                    horizontalLines: [
+                      HorizontalLine(
+                        y: avgRecommended.isFinite ? avgRecommended : 0.0,
+                        dashArray: const [5, 5],
+                        color: AppColors.primary.withOpacity(0.7),
+                        strokeWidth: 1.5,
+                        label: HorizontalLineLabel(
+                          show: true,
+                          alignment: Alignment.topRight,
+                          padding: const EdgeInsets.only(right: 6, bottom: 6),
+                          style: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 10,
-                            fontWeight: FontWeight.bold),
-                        labelResolver: (line) => 'Target: ${line.y.toInt()}',
+                            fontWeight: FontWeight.w800,
+                          ),
+                          labelResolver: (line) =>
+                              'Rata-rata Rekomendasi: ${line.y.toInt()}',
+                        ),
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
                 ),
+                key: _chartKey, // <- key DITEMPATKAN SETELAH data (named arg)
+                swapAnimationDuration: const Duration(milliseconds: 300),
+                swapAnimationCurve: Curves.easeOutCubic,
               ),
+            ),
+            const SizedBox(height: 11),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: const [
+                _LegendDot(color: AppColors.primary, label: 'Konsumsi'),
+                SizedBox(width: 12),
+                _LegendDot(color: Colors.grey, label: 'Rekomendasi'),
+              ],
             ),
           ],
         ),
@@ -236,41 +359,70 @@ class KaloriChartCard extends StatelessWidget {
     );
   }
 
-  // Widget header untuk Kalori Harian
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.local_fire_department, color: Colors.orange, size: 28),
-        const SizedBox(width: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.12),
+            shape: BoxShape.circle,
+          ),
+          padding: const EdgeInsets.all(8),
+          child: const Icon(Icons.local_fire_department,
+              color: Colors.orange, size: 22),
+        ),
+        const SizedBox(width: 11),
         const Text(
           'Kalori Harian',
           style: TextStyle(
             fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.darkGrey, // Warna teks konsisten
+            fontWeight: FontWeight.w800,
+            color: AppColors.darkGrey,
           ),
         ),
         const Spacer(),
-        // Tombol untuk melihat lebih banyak data, jika diperlukan
-        TextButton(
-          onPressed: () {
-            print('Lihat Riwayat Kalori diklik');
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            padding: EdgeInsets.zero, // Hapus padding default
-            minimumSize: Size.zero, // Hapus ukuran minimum default
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Area tap kecil
-          ),
-          child: const Text(
-            'Lihat Detail',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+        if (widget.onViewDetail != null)
+          TextButton.icon(
+            onPressed: widget.onViewDetail,
+            label: const Text('Lihat detail',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
-        ),
+        if (widget.onDownload != null) ...[
+          const SizedBox(width: 6),
+          IconButton(
+            onPressed: widget.onDownload,
+            icon: const Icon(Icons.download_rounded, color: AppColors.primary),
+            tooltip: 'Unduh',
+            splashRadius: 20,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label,
+            style: const TextStyle(fontSize: 12, color: AppColors.darkGrey)),
       ],
     );
   }

@@ -43,55 +43,32 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
   // Widget helper untuk OTP TextField
   Widget _otpTextField(BuildContext context, TextEditingController controller) {
     return SizedBox(
-      width: 60,
-      height: 60,
+      width: 50,
       child: TextField(
         controller: controller,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
-        style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.darkGrey),
+        style: const TextStyle(fontSize: 24),
         decoration: InputDecoration(
           counterText: '',
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: EdgeInsets.zero,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            // Menggunakan Color.fromRGBO untuk mengatasi deprecated member use
-            borderSide: BorderSide(
-              color: Color.fromRGBO(
-                  AppColors.primary.red,
-                  AppColors.primary.green,
-                  AppColors.primary.blue,
-                  0.5), // opacity 0.5
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: AppColors.primary, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: AppColors.primary, width: 1),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            // Menggunakan Color.fromRGBO untuk mengatasi deprecated member use
-            borderSide: BorderSide(
-              color: Color.fromRGBO(
-                  AppColors.primary.red,
-                  AppColors.primary.green,
-                  AppColors.primary.blue,
-                  0.5), // opacity 0.5
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: AppColors.primary, width: 1),
           ),
         ),
         onChanged: (value) {
           if (value.isNotEmpty) {
             FocusScope.of(context).nextFocus();
-          } else if (value.isEmpty) {
+          } else if (value.isEmpty && controller.text.isEmpty) {
             FocusScope.of(context).previousFocus();
           }
         },
@@ -148,87 +125,50 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
             // BlocListener membungkus konten yang akan ditampilkan
             child: BlocListener<AuthBloc, AuthState>(
               listener: (context, state) {
-                // FUNGSI INI TIDAK DIUBAH
                 if (state is AuthLoading) {
-                  setState(() {
-                    _isLoading = true;
-                  });
+                  // CustomLoadingDialog.show(context);
+
+                  // setState(() { _isLoading = true; });
                 } else {
-                  setState(() {
-                    _isLoading = false;
-                  });
+                  // Dismiss loading dialog jika ada, setelah state bukan lagi loading
+                  // CustomLoadingDialog.hide(context);
+                  // setState(() { _isLoading = false; });
                 }
 
-                if (state is AuthOtpVerified) {
-                  Future.delayed(const Duration(milliseconds: 300), () {
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (BuildContext dialogContext) {
-                        return CustomAlertDialog(
-                          title: "Verifikasi Berhasil!",
-                          message:
-                              "Kode OTP Anda telah berhasil diverifikasi. Yuk, lengkapi profilmu!",
-                          buttonText: "Lanjut",
-                          type: DialogType.success,
-                          showButton: true,
-                          onButtonPressed: () {
-                            Navigator.pushReplacement(
-                              dialogContext,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    DetailuserInputNama(userId: widget.userId),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  });
+                if (state is AuthVerifiedAndLoggedIn) {
+                  // --- VERIFIKASI BERHASIL DAN AUTO-LOGIN BERHASIL ---
+                  // Tutup semua dialog yang mungkin terbuka (misal loading, atau error sebelumnya)
+                  Navigator.of(context).popUntil((route) =>
+                      route.isFirst); // Kembali ke root jika diperlukan
+                  // Atau hanya menutup dialog spesifik jika CustomAlertDialog selalu pop.
+
+                  // Navigasi ke halaman detail profil atau halaman utama
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => DetailuserInputNama(
+                        userId: state.user
+                            .userId, // Pastikan `state` adalah `AuthVerifiedAndLoggedIn`
+                      ),
+                    ),
+                  );
                 } else if (state is AuthError) {
-                  String dialogTitle = "Verifikasi Gagal!";
-                  String dialogMessage = state.message;
-                  DialogType dialogType = DialogType.error;
-
-                  final cleanMessage = state.message.trim();
-
-                  if (cleanMessage.contains("Kode tidak sesuai")) {
-                    dialogTitle = "Kode OTP Salah!";
-                    dialogMessage =
-                        "Kode OTP yang kamu masukkan tidak cocok. Coba lagi ya!";
-                    dialogType = DialogType.error;
-                  } else if (cleanMessage
-                          .contains("Gagal terhubung ke server") ||
-                      cleanMessage.contains("Network Error")) {
-                    dialogTitle = "Jaringanmu Bermasalah?";
-                    dialogMessage =
-                        "Gagal terhubung ke server. Pastikan koneksi internetmu stabil dan coba lagi ya!";
-                    dialogType = DialogType.error;
-                  } else if (cleanMessage.contains("masalah tak terduga")) {
-                    dialogTitle = "Ada Error Nih!";
-                    dialogMessage =
-                        "Terjadi masalah tak terduga di aplikasi. Kami sedang memperbaikinya. Mohon coba lagi nanti ya!";
-                    dialogType = DialogType.error;
-                  } else if (cleanMessage
-                      .contains("Nomor telepon dan OTP harus diisi")) {
-                    dialogTitle = "Input Belum Lengkap!";
-                    dialogMessage = "Mohon isi nomor telepon dan kode OTP ya!";
-                    dialogType = DialogType.warning;
-                  }
-
                   showDialog(
                     context: context,
                     barrierDismissible: false,
                     builder: (BuildContext dialogContext) {
                       return CustomAlertDialog(
-                        title: dialogTitle,
-                        message: dialogMessage,
+                        title: "Verifikasi Gagal!",
+                        message:
+                            state.message, // Menampilkan pesan error dari bloc
                         buttonText: "Oke",
-                        type: dialogType,
+                        type: DialogType.error,
                         showButton: true,
                       );
                     },
                   );
+                  print('UI: Menampilkan dialog error: ${state.message}');
+                  // Log Anda "Pengguna klik 'Oke' untuk error/warning registrasi"
+                  // kemungkinan berasal dari tombol 'Oke' di CustomAlertDialog ini.
                 }
               },
               // Bagian ini adalah child dari BlocListener
@@ -279,11 +219,11 @@ class _OtpRegistrasiState extends State<OtpRegistrasi> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _otpTextField(context, controller1),
-                      const SizedBox(width: 15),
+                      const SizedBox(width: 11),
                       _otpTextField(context, controller2),
-                      const SizedBox(width: 15),
+                      const SizedBox(width: 11),
                       _otpTextField(context, controller3),
-                      const SizedBox(width: 15),
+                      const SizedBox(width: 11),
                       _otpTextField(context, controller4),
                     ],
                   ),
