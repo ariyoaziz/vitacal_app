@@ -1,5 +1,5 @@
 // lib/screen/analytics/card_beratgrafik.dart
-// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, no_leading_underscores_for_local_identifiers
 
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
@@ -8,11 +8,9 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:vitacal_app/themes/colors.dart';
 
-/// Data: [{"date":"YYYY-MM-DD","weight":<num>}]
+/// Data contoh: [{"date":"YYYY-MM-DD","weight":<num>}]
 class CardBeratGrafik extends StatelessWidget {
   final List<Map<String, dynamic>> data;
-
-  /// Callback opsional di header (otomatis tersembunyi kalau null)
   final VoidCallback? onViewDetail;
   final VoidCallback? onDownload;
 
@@ -29,7 +27,7 @@ class CardBeratGrafik extends StatelessWidget {
       initializeDateFormatting('id_ID', null);
     } catch (_) {}
 
-    // Ambil 7 data terakhir (tua -> terbaru)
+    // Ambil 7 data terakhir (urut lama -> baru)
     final displayedData = data.length > 7
         ? data.sublist(data.length - 7)
         : List<Map<String, dynamic>>.from(data);
@@ -37,39 +35,48 @@ class CardBeratGrafik extends StatelessWidget {
     if (displayedData.isEmpty) {
       return Card(
         color: AppColors.screen,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 2,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Colors.black.withOpacity(.06), width: 1),
+        ),
+        elevation: 1,
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 33),
               Container(
                 height: 200,
                 alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F7F7),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.black.withOpacity(.05)),
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.monitor_weight_rounded,
-                        size: 48, color: AppColors.darkGrey.withOpacity(0.35)),
-                    const SizedBox(height: 12),
+                        size: 40, color: AppColors.darkGrey.withOpacity(0.35)),
+                    const SizedBox(height: 10),
                     Text(
-                      'Belum ada data berat badan.',
+                      'Belum ada data berat badan',
                       style: TextStyle(
-                        color: AppColors.darkGrey.withOpacity(0.8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        color: AppColors.darkGrey.withOpacity(0.9),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
-                      'Tambahkan catatan berat untuk mulai melihat progresmu.',
+                      'Tambahkan catatan berat untuk mulai melihat grafik.',
                       style: TextStyle(
-                        color: AppColors.darkGrey.withOpacity(0.6),
-                        fontSize: 12,
+                        color: AppColors.mediumGrey,
+                        fontSize: 12.5,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -88,31 +95,40 @@ class CardBeratGrafik extends StatelessWidget {
       return FlSpot(i.toDouble(), w);
     });
 
-    // Skala Y yang aman & enak dilihat
-    final weights = spots.map((s) => s.y).toList();
-    double minVal = weights.reduce(math.min);
-    double maxVal = weights.reduce(math.max);
-
-    // padding adaptif
+    // Range Y yang enak dilihat
+    final ys = spots.map((s) => s.y).toList();
+    double minVal = ys.reduce(math.min);
+    double maxVal = ys.reduce(math.max);
     final range = (maxVal - minVal);
-    final pad = range < 4 ? 3.0 : math.max(4.0, range * 0.12);
+
+    // padding adaptif (sedikit tapi cukup)
+    final pad = range < 4 ? 2.5 : math.max(3.0, range * 0.12);
     double minY = (minVal - pad);
     double maxY = (maxVal + pad);
     if (minY < 0) minY = 0;
 
-    // interval Y aman (minimal 1)
-    final intervalY = () {
-      final r = (maxY - minY);
+    // step sumbu Y yang “nice”
+    double _niceStep(double r) {
       if (r <= 0) return 1.0;
       final raw = r / 4;
-      // bulatkan ke 0.5 atau 1 terdekat biar cantik
-      final step =
-          (raw < 5) ? (raw).clamp(1.0, 5.0) : (raw / 5).roundToDouble() * 5;
-      return step <= 0 ? 1.0 : step;
-    }();
+      // bulatkan ke 0.5/1/2/5 terdekat
+      final candidates = [0.5, 1.0, 2.0, 5.0, 10.0];
+      double best = candidates.first;
+      double bestDiff = (raw - best).abs();
+      for (final c in candidates) {
+        final diff = (raw - c).abs();
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          best = c;
+        }
+      }
+      return best;
+    }
 
-    // rata-rata berat ditampilkan sebagai garis referensi
-    final avg = weights.reduce((a, b) => a + b) / weights.length;
+    final intervalY = _niceStep(maxY - minY);
+
+    // rata-rata berat (garis referensi)
+    final avg = ys.reduce((a, b) => a + b) / ys.length;
 
     // info terakhir (chip)
     final last = displayedData.last;
@@ -122,27 +138,70 @@ class CardBeratGrafik extends StatelessWidget {
       lastDate = DateTime.parse((last['date'] ?? '') as String);
     } catch (_) {}
 
+    // delta dari data pertama ke terakhir (opsional kecil di header)
+    final firstW = (displayedData.first['weight'] as num?)?.toDouble() ?? lastW;
+    final delta = (lastW - firstW);
+    final deltaStr =
+        '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} kg dari awal';
+
     return Card(
       color: AppColors.screen,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      elevation: 2,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: Colors.black.withOpacity(.06), width: 1),
+      ),
+      elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            const SizedBox(height: 11),
+            _buildHeader(actions: [
+              if (onViewDetail != null)
+                TextButton(
+                  onPressed: onViewDetail,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Lihat detail',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              if (onDownload != null)
+                IconButton(
+                  onPressed: onDownload,
+                  icon: const Icon(Icons.download_rounded,
+                      color: AppColors.primary),
+                  splashRadius: 20,
+                  tooltip: 'Unduh',
+                ),
+            ]),
+            const SizedBox(height: 21),
+
+            // chip info terakhir + delta sederhana
             if (lastDate != null)
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   _miniChip(
-                    icon: Icons.trending_up_rounded,
+                    icon: Icons.event,
                     label:
                         'Terakhir: ${lastW.toStringAsFixed(1)} kg • ${DateFormat('d MMM yyyy', 'id_ID').format(lastDate)}',
                   ),
+                  _miniChip(
+                    icon: delta >= 0
+                        ? Icons.trending_up_rounded
+                        : Icons.trending_down_rounded,
+                    label: deltaStr,
+                  ),
                 ],
               ),
+
             const SizedBox(height: 33),
             AspectRatio(
               aspectRatio: 1.25,
@@ -173,7 +232,7 @@ class CardBeratGrafik extends StatelessWidget {
                         getTitlesWidget: (v, meta) {
                           if (v < minY || v > maxY) return const SizedBox();
                           return Text(
-                            '${v.toStringAsFixed(0)} kg',
+                            '${v.toStringAsFixed(v % 1 == 0 ? 0 : 1)} kg',
                             style: const TextStyle(
                                 fontSize: 12, color: AppColors.darkGrey),
                           );
@@ -183,18 +242,19 @@ class CardBeratGrafik extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 30,
+                        reservedSize: 28,
                         getTitlesWidget: (v, meta) {
                           final i = v.toInt();
-                          if (i < 0 || i >= displayedData.length)
+                          if (i < 0 || i >= displayedData.length) {
                             return const SizedBox();
+                          }
                           final ds = (displayedData[i]['date'] ?? '') as String;
                           DateTime? d;
                           try {
                             d = DateTime.parse(ds);
                           } catch (_) {}
                           return Padding(
-                            padding: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.only(top: 6),
                             child: Text(
                               d != null
                                   ? DateFormat('dd/MM', 'id_ID').format(d)
@@ -206,20 +266,23 @@ class CardBeratGrafik extends StatelessWidget {
                         },
                       ),
                     ),
-                    topTitles:
-                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles:
-                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
                   ),
                   borderData: FlBorderData(show: false),
                   lineBarsData: [
-                    // garis utama
                     LineChartBarData(
                       spots: spots,
                       isCurved: true,
+                      curveSmoothness: 0.2,
                       barWidth: 3,
                       gradient: LinearGradient(
-                        colors: [AppColors.primary, Colors.green.shade600],
+                        colors: [
+                          AppColors.primary,
+                          Colors.green.shade600,
+                        ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
@@ -241,7 +304,7 @@ class CardBeratGrafik extends StatelessWidget {
                         show: true,
                         gradient: LinearGradient(
                           colors: [
-                            AppColors.primary.withOpacity(0.20),
+                            AppColors.primary.withOpacity(0.18),
                             Colors.transparent
                           ],
                           begin: Alignment.topCenter,
@@ -257,7 +320,7 @@ class CardBeratGrafik extends StatelessWidget {
                         y: avg,
                         dashArray: const [6, 6],
                         color: AppColors.primary.withOpacity(0.7),
-                        strokeWidth: 1.4,
+                        strokeWidth: 1.3,
                         label: HorizontalLineLabel(
                           show: true,
                           alignment: Alignment.topRight,
@@ -324,7 +387,7 @@ class CardBeratGrafik extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: dateText,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.darkGrey,
@@ -346,7 +409,7 @@ class CardBeratGrafik extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader({List<Widget> actions = const []}) {
     return Row(
       children: [
         Container(
@@ -371,20 +434,7 @@ class CardBeratGrafik extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        if (onViewDetail != null)
-          TextButton.icon(
-            onPressed: onViewDetail,
-            label: const Text(
-              'Lihat Detail',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ),
+        ...actions,
       ],
     );
   }
@@ -395,8 +445,10 @@ class CardBeratGrafik extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primary.withOpacity(0.08),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.primary.withOpacity(.10)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: AppColors.primary),
           const SizedBox(width: 6),

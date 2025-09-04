@@ -13,3 +13,7 @@ class LoadRiwayat extends RiwayatUserEvent {
   @override
   List<Object?> get props => [days];
 }
+
+class ClearRiwayat extends RiwayatUserEvent {
+  const ClearRiwayat();
+}

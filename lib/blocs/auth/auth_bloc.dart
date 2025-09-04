@@ -106,15 +106,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     });
     on<LogoutUserEvent>((event, emit) async {
-      print('AuthBloc: Menerima LogoutUserEvent');
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('access_token');
-      await prefs.remove('refresh_token');
-      await prefs.remove('user_id');
-
-      print('AuthBloc: Logout berhasil. Token dihapus.');
+      try {
+        // Pakai SharedPreferences (sesuai kodenmu) atau AuthService kalau sudah ada
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('access_token');
+        await prefs.remove('refresh_token');
+        await prefs.remove('user_id');
+      } catch (e) {
+        // swallow; tetap lanjut ke unauthenticated
+      }
       emit(AuthUnauthenticated());
     });
+
     // --- Handler for LoginUserEvent (manual login) ---
     on<LoginUserEvent>((event, emit) async {
       print('AuthBloc: Menerima LoginUserEvent');

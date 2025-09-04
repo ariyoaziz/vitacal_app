@@ -17,6 +17,7 @@ import 'package:vitacal_app/main.dart' as app_main;
 // Bloc untuk sinkronisasi lintas-halaman
 import 'package:vitacal_app/blocs/profile/profile_bloc.dart';
 import 'package:vitacal_app/blocs/profile/profile_state.dart';
+import 'package:vitacal_app/blocs/profile/profile_event.dart';
 
 import 'package:vitacal_app/blocs/user_detail/userdetail_bloc.dart';
 import 'package:vitacal_app/blocs/user_detail/userdetail_state.dart';
@@ -24,6 +25,10 @@ import 'package:vitacal_app/blocs/user_detail/userdetail_event.dart';
 
 import 'package:vitacal_app/blocs/riwayat_user/riwayat_user_bloc.dart';
 import 'package:vitacal_app/blocs/riwayat_user/riwayat_user_event.dart';
+
+// >>> Tambah: Kalori bloc supaya bisa re-fetch rekomendasi
+import 'package:vitacal_app/blocs/kalori/kalori_bloc.dart';
+import 'package:vitacal_app/blocs/kalori/kalori_event.dart';
 
 class MainPage extends StatefulWidget {
   final bool showSuccessDialog;
@@ -37,18 +42,22 @@ class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
   void _refreshGlobal() {
-    // Muat ulang detail & riwayat untuk menyegarkan semua halaman yang pakai bloc ini
+    if (!mounted) return;
+
+    // Penting: re-fetch profile & kalori (agar Home langsung segar)
+    context.read<ProfileBloc>().add(const LoadProfileData());
+    context.read<KaloriBloc>().add(const FetchKaloriData());
+
+    // Segarkan detail & riwayat yang dipakai halaman lain
     context.read<UserDetailBloc>().add(LoadUserDetail());
     context.read<RiwayatUserBloc>().add(const LoadRiwayat(days: 7));
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
 
-    // Setiap masuk tab Analytics, pastikan data terbaru
-    if (index == 3) {
+    // Saat masuk Home/Analytics, pastikan data terbaru
+    if (index == 0 || index == 3) {
       _refreshGlobal();
     }
   }
@@ -86,21 +95,26 @@ class _MainPageState extends State<MainPage> {
 
     return MultiBlocListener(
       listeners: [
-        // Jika profil berubah (berhasil update/muat), segarkan data global
+        // Jika profil BERHASIL diubah (bukan sekadar loaded), re-fetch semuanya
         BlocListener<ProfileBloc, ProfileState>(
           listenWhen: (prev, curr) =>
-              curr is ProfileLoaded ||
-              curr is ProfileSuccess ||
-              curr is ProfileNoChange,
+              curr is ProfileSuccess || curr is ProfileNoChange,
           listener: (context, state) {
-            _refreshGlobal();
+            // Re-fetch profile untuk dapat data terbaru dari server,
+            // sekaligus kalori & riwayat agar konsisten di semua tab.
+            context.read<ProfileBloc>().add(const LoadProfileData());
+            context.read<KaloriBloc>().add(const FetchKaloriData());
+            context.read<RiwayatUserBloc>().add(const LoadRiwayat(days: 7));
           },
         ),
 
-        // Jika user detail sukses diupdate, segarkan riwayat (kalori/berat)
+        // Jika user detail sukses diupdate (berat/tinggi/aktivitas/tujuan),
+        // muat ulang profil & kalori & riwayat.
         BlocListener<UserDetailBloc, UserDetailState>(
           listenWhen: (prev, curr) => curr is UserDetailUpdateSuccess,
           listener: (context, state) {
+            context.read<ProfileBloc>().add(const LoadProfileData());
+            context.read<KaloriBloc>().add(const FetchKaloriData());
             context.read<RiwayatUserBloc>().add(const LoadRiwayat(days: 7));
           },
         ),

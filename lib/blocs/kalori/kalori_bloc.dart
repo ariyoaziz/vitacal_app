@@ -1,13 +1,13 @@
-// lib/blocs/kalori/kalori_bloc.dart
-
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:vitacal_app/services/kalori_service.dart'; // Import CalorieService Anda
-import 'package:vitacal_app/exceptions/api_exception.dart'; // Import ApiException Anda
-import 'package:vitacal_app/models/kalori_model.dart'; // Import KaloriModel Anda
+import 'package:vitacal_app/services/kalori_service.dart';
+import 'package:vitacal_app/models/kalori_model.dart';
 
-// Import event dan state yang baru dibuat
 import 'package:vitacal_app/blocs/kalori/kalori_event.dart';
 import 'package:vitacal_app/blocs/kalori/kalori_state.dart';
+
+// pakai alias supaya tidak ambiguous
+import 'package:vitacal_app/exceptions/api_exception.dart' as api;
+import 'package:vitacal_app/exceptions/auth_exception.dart' as auth;
 
 class KaloriBloc extends Bloc<KaloriEvent, KaloriState> {
   final CalorieService calorieService;
@@ -17,18 +17,27 @@ class KaloriBloc extends Bloc<KaloriEvent, KaloriState> {
     on<DeleteKaloriData>(_onDeleteKaloriData);
     on<LoadDailyCalorieData>(_onLoadDailyCalorieData);
     on<LoadWeightGraphData>(_onLoadWeightGraphData);
+    on<HydrateKaloriFromProfile>(_onHydrateFromProfile);
   }
+
+  Future<void> _onHydrateFromProfile(
+      HydrateKaloriFromProfile event, Emitter<KaloriState> emit) async {
+    // langsung set Loaded dari data profile
+    emit(KaloriLoaded(event.data));
+  }
+
   Future<void> _onLoadDailyCalorieData(
       LoadDailyCalorieData event, Emitter<KaloriState> emit) async {
     emit(const KaloriLoading());
     try {
       emit(const KaloriError(
-          'Fitur LoadDailyCalorieData belum diimplementasikan.')); // Placeholder
-    } on ApiException catch (e) {
+          'Fitur LoadDailyCalorieData belum diimplementasikan.'));
+    } on auth.AuthException catch (e) {
+      emit(KaloriError(e.message));
+    } on api.ApiException catch (e) {
       emit(KaloriError(e.message));
     } catch (e) {
-      emit(KaloriError(
-          'Terjadi kesalahan saat memuat data kalori harian: ${e.toString()}'));
+      emit(KaloriError('Terjadi kesalahan saat memuat data kalori harian: $e'));
     }
   }
 
@@ -37,12 +46,14 @@ class KaloriBloc extends Bloc<KaloriEvent, KaloriState> {
     emit(const KaloriLoading());
     try {
       emit(const KaloriError(
-          'Fitur LoadWeightGraphData belum diimplementasikan.')); // Placeholder
-    } on ApiException catch (e) {
+          'Fitur LoadWeightGraphData belum diimplementasikan.'));
+    } on auth.AuthException catch (e) {
+      emit(KaloriError(e.message));
+    } on api.ApiException catch (e) {
       emit(KaloriError(e.message));
     } catch (e) {
       emit(KaloriError(
-          'Terjadi kesalahan saat memuat data grafik berat badan: ${e.toString()}'));
+          'Terjadi kesalahan saat memuat data grafik berat badan: $e'));
     }
   }
 
@@ -50,18 +61,16 @@ class KaloriBloc extends Bloc<KaloriEvent, KaloriState> {
       FetchKaloriData event, Emitter<KaloriState> emit) async {
     emit(const KaloriLoading());
     try {
-      await Future.delayed(
-          const Duration(milliseconds: 1000)); // Ditingkatkan ke 1 detik
-
       final KaloriModel kaloriModel =
           await calorieService.fetchCalorieRecommendation();
-
       emit(KaloriLoaded(kaloriModel));
-    } on ApiException catch (e) {
+    } on auth.AuthException catch (e) {
+      emit(KaloriError(e.message));
+    } on api.ApiException catch (e) {
       emit(KaloriError(e.message));
     } catch (e) {
       emit(KaloriError(
-          'Terjadi kesalahan tidak terduga saat mengambil data kalori: ${e.toString()}'));
+          'Terjadi kesalahan tidak terduga saat mengambil data kalori: $e'));
     }
   }
 
@@ -69,17 +78,16 @@ class KaloriBloc extends Bloc<KaloriEvent, KaloriState> {
       DeleteKaloriData event, Emitter<KaloriState> emit) async {
     emit(const KaloriLoading());
     try {
-      await Future.delayed(const Duration(milliseconds: 1000));
-
       final String message = await calorieService.deleteCalorieRecommendation();
-
       emit(KaloriSuccess(message));
       emit(const KaloriInitial());
-    } on ApiException catch (e) {
+    } on auth.AuthException catch (e) {
+      emit(KaloriError(e.message));
+    } on api.ApiException catch (e) {
       emit(KaloriError(e.message));
     } catch (e) {
       emit(KaloriError(
-          'Terjadi kesalahan tidak terduga saat menghapus data kalori: ${e.toString()}'));
+          'Terjadi kesalahan tidak terduga saat menghapus data kalori: $e'));
     }
   }
 }

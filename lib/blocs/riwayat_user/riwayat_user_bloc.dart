@@ -9,6 +9,11 @@ class RiwayatUserBloc extends Bloc<RiwayatUserEvent, RiwayatUserState> {
 
   RiwayatUserBloc({required this.service}) : super(const RiwayatUserInitial()) {
     on<LoadRiwayat>(_onLoadRiwayat);
+
+    // ⬇️ WAJIB ada supaya add(ClearRiwayat) tidak error
+    on<ClearRiwayat>((event, emit) {
+      emit(const RiwayatUserInitial());
+    });
   }
 
   Future<void> _onLoadRiwayat(

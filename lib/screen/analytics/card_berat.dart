@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vitacal_app/themes/colors.dart';
-// PASTIKAN PATH INI BENAR untuk dialog kustom Anda
 import 'package:vitacal_app/screen/analytics/showdialog_berat.dart';
 
 class BeratCard extends StatelessWidget {
@@ -20,109 +19,148 @@ class BeratCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String unit;
-    double minValue;
-    double maxValue;
-
-    // Inisialisasi unit, minValue, dan maxValue berdasarkan label
-    if (label == "Berat Sekarang" || label == "Tujuan Berat") {
-      unit = "kg";
-      minValue =
-          10.0; // Contoh nilai minimum yang lebih fleksibel untuk berat badan
-      maxValue = 200.0; // Contoh nilai maksimum untuk berat badan
-    } else if (label == "Tinggi Badan") {
-      unit = "cm";
-      minValue = 50.0; // Contoh nilai minimum untuk tinggi badan
-      maxValue = 250.0; // Contoh nilai maksimum untuk tinggi badan
-    } else {
-      // Default jika label tidak cocok
-      unit = "";
-      minValue = 0.0;
-      maxValue = 100.0;
-    }
+    // Tentukan unit & batas nilai berdasarkan label
+    final _Meta meta = _metaFromLabel(label);
 
     return Card(
       color: AppColors.screen,
-      // Bentuk kartu yang lebih modern dengan radius 24 dan elevation 2
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      elevation: 2, // Menaikkan elevation untuk kesan kedalaman
+      surfaceTintColor: Colors.transparent, // hindari tint di Material 3
+      elevation: 1,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        // ignore: deprecated_member_use
+        side: BorderSide(color: Colors.black.withOpacity(0.04), width: 1),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Konten utama
           Padding(
-            padding: const EdgeInsets.all(
-                20), // Padding yang lebih besar untuk konten
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Column(
               children: [
+                // Icon + Label
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Ukuran ikon ditingkatkan agar lebih terlihat
-                    SvgPicture.asset(icon, height: 24),
-                    const SizedBox(width: 11),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        // ignore: deprecated_member_use
+                        color: AppColors.primary.withOpacity(0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: SvgPicture.asset(icon, height: 20),
+                    ),
+                    const SizedBox(width: 10),
                     Text(
                       label,
                       style: const TextStyle(
-                          fontSize: 16, // Ukuran font label disesuaikan
-                          fontWeight: FontWeight.w600, // Sedikit lebih tebal
-                          color: AppColors.darkGrey),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkGrey,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24), // Spasi setelah label/ikon
-                Text(
-                  // Menggunakan .toStringAsFixed(1) untuk menampilkan satu angka desimal
-                  "${value.toStringAsFixed(1)} $unit",
-                  style: const TextStyle(
-                      fontSize: 28, // Ukuran font nilai lebih besar
-                      fontWeight: FontWeight.w700, // Sangat tebal
-                      color: AppColors.darkGrey),
+                const SizedBox(height: 16),
+
+                // Nilai + Unit (proporsi enak dibaca)
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, anim) =>
+                      FadeTransition(opacity: anim, child: child),
+                  child: RichText(
+                    key: ValueKey('${value.toStringAsFixed(1)} ${meta.unit}'),
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: value.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 30,
+                            height: 1.1,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.darkGrey,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' ${meta.unit}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 1.1,
+                            fontWeight: FontWeight.w600,
+                            // ignore: deprecated_member_use
+                            color: AppColors.darkGrey.withOpacity(0.75),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          // Spasi sebelum tombol, disesuaikan agar rapi dengan padding atas
-          const SizedBox(height: 24),
+
+          const SizedBox(height: 16),
+          // Tombol Perbaharui
           SizedBox(
-            width: double.infinity, // Memastikan tombol memenuhi lebar card
-            child: ElevatedButton(
+            width: double.infinity,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.screen,
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+              ),
+              label: const Text(
+                'Perbaharui',
+                style: TextStyle(
+                  color: AppColors.screen,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
               onPressed: () {
-                // Memanggil fungsi dialog showUpdateValueDialog
                 showUpdateValueDialog(
                   context: context,
                   title: label,
-                  onSave: (newValue) {
-                    onUpdate(newValue); // Meneruskan nilai yang disimpan
-                  },
                   initialValue: value,
-                  minValue: minValue,
-                  maxValue: maxValue,
-                  unit: unit,
+                  minValue: meta.min,
+                  maxValue: meta.max,
+                  unit: meta.unit,
+                  onSave: (newValue) => onUpdate(newValue),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.screen, // Warna teks tombol
-                // Bentuk tombol agar menyatu dengan radius bawah kartu
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(
-                      bottom: Radius.circular(24)), // Radius sesuai kartu
-                ),
-                padding: const EdgeInsets.symmetric(
-                    vertical: 18), // Padding vertikal tombol lebih besar
-                elevation:
-                    0, // Menghilangkan elevation default tombol jika sudah ada shadow di parent
-              ),
-              child: const Text(
-                "Perbaharui",
-                style: TextStyle(
-                    color: AppColors.screen,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16), // Ukuran font tombol
-              ),
             ),
           ),
         ],
       ),
     );
   }
+
+  // Helper untuk mapping label -> unit & range
+  _Meta _metaFromLabel(String label) {
+    switch (label) {
+      case 'Berat Sekarang':
+      case 'Tujuan Berat':
+        return const _Meta(unit: 'kg', min: 10.0, max: 200.0);
+      case 'Tinggi Badan':
+        return const _Meta(unit: 'cm', min: 50.0, max: 250.0);
+      default:
+        return const _Meta(unit: '', min: 0.0, max: 100.0);
+    }
+  }
+}
+
+class _Meta {
+  final String unit;
+  final double min;
+  final double max;
+  const _Meta({required this.unit, required this.min, required this.max});
 }
