@@ -2,12 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:camera/camera.dart';
+import 'package:vitacal_app/blocs/makanan/makanan_bloc.dart';
 
 // Screens
 import 'package:vitacal_app/screen/onboarding/splash_screen.dart';
 
 // Services
 import 'package:vitacal_app/services/auth_service.dart';
+import 'package:vitacal_app/services/makanan_service.dart';
 import 'package:vitacal_app/services/userdetail_service.dart';
 import 'package:vitacal_app/services/kalori_service.dart';
 import 'package:vitacal_app/services/profile_service.dart';
@@ -74,6 +76,12 @@ class MyApp extends StatelessWidget {
             authService: ctx.read<AuthService>(),
           ),
         ),
+        RepositoryProvider<MakananService>(
+          create: (ctx) => MakananService.fromConstants(
+            authService:
+                ctx.read<AuthService>(), // kalau endpoint public, bisa null
+          ),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -102,6 +110,9 @@ class MyApp extends StatelessWidget {
               authService: ctx.read<AuthService>(),
             ),
           ),
+          BlocProvider<MakananBloc>(
+              // ignore: no_wildcard_variable_uses
+              create: (_) => MakananBloc(service: _.read<MakananService>())),
         ],
         child: MultiBlocListener(
           listeners: [

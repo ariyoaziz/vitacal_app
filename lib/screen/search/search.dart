@@ -2,8 +2,16 @@
 // ignore_for_file: unused_element, deprecated_member_use, unnecessary_brace_in_string_interps
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:vitacal_app/themes/colors.dart';
 import 'package:vitacal_app/screen/widgets/dialog.dart';
+
+// BLoC & model makanan
+import 'package:vitacal_app/blocs/makanan/makanan_bloc.dart';
+import 'package:vitacal_app/blocs/makanan/makanan_event.dart';
+import 'package:vitacal_app/blocs/makanan/makanan_state.dart';
+import 'package:vitacal_app/models/makanan_item.dart';
 
 class Search extends StatefulWidget {
   const Search({super.key});
@@ -17,6 +25,10 @@ class _SearchState extends State<Search> {
   String searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  // controller untuk semua ListView (biar load-more bisa jalan konsisten)
+  final ScrollController _listCtrl = ScrollController();
+  bool _isPaging = false; // cegah trigger load-more ganda
+
   final List<String> categories = const [
     'Makan Pagi',
     'Makan Siang',
@@ -24,39 +36,8 @@ class _SearchState extends State<Search> {
     'Cemilan',
   ];
 
-  // Dummy data
-  final List<String> allItems = const [
-    'Nasi Goreng',
-    'Roti Bakar',
-    'Sereal',
-    'Ayam Bakar',
-    'Salad',
-    'Kentang Goreng',
-    'Sate Ayam',
-    'Bakso',
-    'Mie Ayam',
-    'Bubur Ayam',
-    'Telur Dadar',
-    'Sup Ayam',
-    'Gado-gado',
-    'Nasi Uduk',
-    'Pecel Lele',
-    'Martabak',
-    'Pisang Goreng',
-    'Kerupuk',
-    'Tempe Mendoan',
-    'Es Krim',
-    'Cokelat',
-    'Kue',
-    'Buah-buahan',
-    'Yogurt',
-    'Susu',
-    'Kopi',
-    'Teh',
-    'Air Putih',
-  ];
-
-  final Map<String, List<String>> selectedItemsByCategory = {
+  // Simpan pilihan per kategori (pakai model dari backend)
+  final Map<String, List<MakananItem>> selectedItemsByCategory = {
     'Makan Pagi': [],
     'Makan Siang': [],
     'Makan Malam': [],
@@ -64,46 +45,72 @@ class _SearchState extends State<Search> {
   };
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  void initState() {
+    super.initState();
 
-  List<String> _filteredItems() {
-    if (searchQuery.isEmpty) return [];
-    final current = selectedItemsByCategory[selectedCategory] ?? [];
-    return allItems
-        .where((item) =>
-            item.toLowerCase().contains(searchQuery.toLowerCase()) &&
-            !current.contains(item))
-        .toList();
-  }
+    // load rekomendasi/initial list dari backend
+    context.read<MakananBloc>().add(const MakananFetchAll(limit: 50, page: 1));
 
-  List<String> _selectedItems() =>
-      selectedItemsByCategory[selectedCategory] ?? [];
+    // listener untuk auto load-more saat mendekati bottom (hanya non-search & saat BELUM ada item dipilih)
+    _listCtrl.addListener(() {
+      final bloc = context.read<MakananBloc>();
+      if (bloc.isSearching) return; // jangan load-more saat search
+      // jika sudah ada item dipilih → jangan load-more (rekomendasi disembunyikan)
+      if ((selectedItemsByCategory[selectedCategory] ?? []).isNotEmpty) return;
 
-  void _addItem(String item) {
-    setState(() {
-      selectedItemsByCategory.putIfAbsent(selectedCategory, () => []);
-      selectedItemsByCategory[selectedCategory]!.add(item);
-      // Setelah pilih makanan -> sembunyikan hasil pencarian
-      _searchController.clear();
-      searchQuery = '';
-      FocusScope.of(context).unfocus();
+      if (_listCtrl.position.pixels >=
+              _listCtrl.position.maxScrollExtent - 200 &&
+          !_isPaging) {
+        final st = bloc.state;
+        if (st is MakananListLoaded && st.hasMore) {
+          _isPaging = true;
+          bloc.add(const MakananLoadMore());
+        }
+      }
     });
   }
 
-  void _removeItem(String item) {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _listCtrl.dispose();
+    super.dispose();
+  }
+
+  List<MakananItem> _selectedItems() =>
+      selectedItemsByCategory[selectedCategory] ?? [];
+
+  void _addItem(MakananItem item) {
+    final list =
+        selectedItemsByCategory.putIfAbsent(selectedCategory, () => []);
+    if (!list.any((x) => x.id == item.id)) {
+      setState(() => list.add(item));
+    }
+    // Setelah pilih makanan -> sembunyikan hasil pencarian
+    _searchController.clear();
+    searchQuery = '';
+    context.read<MakananBloc>().add(const MakananClearSearch());
+    FocusScope.of(context).unfocus();
+  }
+
+  void _removeItem(MakananItem item) {
     setState(() {
-      selectedItemsByCategory[selectedCategory]?.remove(item);
+      selectedItemsByCategory[selectedCategory]
+          ?.removeWhere((x) => x.id == item.id);
     });
   }
 
   bool get _hasItemsToSave => _selectedItems().isNotEmpty;
 
   Future<void> _refreshList() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    setState(() {});
+    // Bersihkan search & reload rekomendasi
+    _searchController.clear();
+    searchQuery = '';
+    context.read<MakananBloc>().add(const MakananClearSearch());
+    context
+        .read<MakananBloc>()
+        .add(const MakananFetchAll(limit: 50, page: 1, refresh: true));
+    await Future.delayed(const Duration(milliseconds: 300));
   }
 
   @override
@@ -150,7 +157,12 @@ class _SearchState extends State<Search> {
                   ),
                   child: TextField(
                     controller: _searchController,
-                    onChanged: (value) => setState(() => searchQuery = value),
+                    onChanged: (value) {
+                      setState(() => searchQuery = value);
+                      context
+                          .read<MakananBloc>()
+                          .add(MakananSearchQueryChanged(value));
+                    },
                     style: const TextStyle(
                         fontSize: 16, color: AppColors.darkGrey),
                     decoration: InputDecoration(
@@ -171,6 +183,9 @@ class _SearchState extends State<Search> {
                                   _searchController.clear();
                                   searchQuery = '';
                                 });
+                                context
+                                    .read<MakananBloc>()
+                                    .add(const MakananClearSearch());
                               },
                             )
                           : null,
@@ -201,24 +216,27 @@ class _SearchState extends State<Search> {
                               _searchController.clear();
                               searchQuery = '';
                             });
+                            context
+                                .read<MakananBloc>()
+                                .add(const MakananClearSearch());
+                            // scroll ke atas biar UX enak
+                            _listCtrl.animateTo(0,
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOut);
                           }
                         },
-                        selectedColor: AppColors.primary,
+                        selectedColor: AppColors.lightPrimary,
                         backgroundColor: AppColors.screen,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.darkGrey,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.darkGrey,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.w500,
                           fontSize: 14,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                          side: BorderSide(
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.darkGrey.withOpacity(0.4),
-                            width: 1.0,
-                          ),
+                          borderRadius: BorderRadius.circular(21),
                         ),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
@@ -238,91 +256,235 @@ class _SearchState extends State<Search> {
               backgroundColor: AppColors.screen,
               strokeWidth: 3,
               displacement: 60,
-              child: Builder(
-                builder: (context) {
-                  final results = _filteredItems();
-                  final selected = _selectedItems();
+              child: BlocListener<MakananBloc, MakananState>(
+                listener: (context, state) {
+                  // reset flag paging ketika sudah dapat state baru
+                  if (state is MakananListLoaded ||
+                      state is MakananError ||
+                      state is MakananEmpty) {
+                    _isPaging = false;
+                  }
+                },
+                child: BlocBuilder<MakananBloc, MakananState>(
+                  builder: (context, state) {
+                    final bloc = context.read<MakananBloc>();
+                    final isSearching = bloc.isSearching;
+                    final List<MakananItem> selected = _selectedItems();
 
-                  // RULES:
-                  // - Search aktif => TAMPILKAN HASIL CARI SAJA
-                  // - Kalau belum pilih apa pun & belum search => tampil "Mulai cari..." + Rekomendasi
-                  // - Kalau sudah ada pilihan => sembunyikan "Mulai...", boleh tetap tampil Rekomendasi
+                    // utility: filter rekomendasi agar tidak duplikat dengan yang dipilih
+                    List<MakananItem> _excludeSelected(List<MakananItem> src) {
+                      final pickedIds = selected.map((e) => e.id).toSet();
+                      return src
+                          .where((e) => !pickedIds.contains(e.id))
+                          .toList();
+                    }
 
-                  if (searchQuery.isNotEmpty) {
-                    // Hasil pencarian
-                    if (results.isEmpty) {
+                    if (isSearching) {
+                      // === MODE PENCARIAN ===
+                      if (state is MakananSearchLoading) {
+                        return ListView(
+                          controller: _listCtrl,
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                          children: const [
+                            _SectionTitle('Hasil Pencarian'),
+                            SizedBox(height: 16),
+                            Center(child: CircularProgressIndicator()),
+                          ],
+                        );
+                      }
+                      if (state is MakananSearchLoaded) {
+                        final results = _excludeSelected(state.items);
+                        if (results.isEmpty) {
+                          return ListView(
+                            controller: _listCtrl,
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                            children: [
+                              const _SectionTitle('Hasil Pencarian'),
+                              const SizedBox(height: 12),
+                              _emptyState(
+                                icon: Icons.search_off_rounded,
+                                title: 'Tidak ada hasil',
+                                subtitle:
+                                    'Coba kata kunci lain atau periksa ejaannya.',
+                              ),
+                            ],
+                          );
+                        }
+                        return ListView.builder(
+                          controller: _listCtrl,
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
+                          itemCount: results.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return const Padding(
+                                padding: EdgeInsets.only(bottom: 12),
+                                child: _SectionTitle('Hasil Pencarian'),
+                              );
+                            }
+                            final item = results[index - 1];
+                            return _resultItem(item,
+                                onTap: () => _addItem(item));
+                          },
+                        );
+                      }
+                      if (state is MakananError) {
+                        return ListView(
+                          controller: _listCtrl,
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                          children: [
+                            const _SectionTitle('Hasil Pencarian'),
+                            const SizedBox(height: 12),
+                            _emptyState(
+                              icon: Icons.error_outline_rounded,
+                              title: 'Gagal memuat',
+                              subtitle: state.message,
+                            ),
+                          ],
+                        );
+                      }
+                      // fallback saat searching tetapi belum ada state -> loader ringan
                       return ListView(
+                        controller: _listCtrl,
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                        children: const [
+                          _SectionTitle('Hasil Pencarian'),
+                          SizedBox(height: 16),
+                          Center(child: CircularProgressIndicator()),
+                        ],
+                      );
+                    }
+
+                    // === MODE REKOMENDASI / LIST AWAL ===
+                    if (state is MakananLoading || state is MakananInitial) {
+                      // belum ada pilihan -> tampilkan startCard + loader
+                      if (selected.isEmpty) {
+                        return ListView(
+                          controller: _listCtrl,
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
+                          children: [
+                            _startCard(),
+                            const SizedBox(height: 20),
+                            const _SectionTitle('Rekomendasi'),
+                            const SizedBox(height: 16),
+                            const Center(child: CircularProgressIndicator()),
+                          ],
+                        );
+                      }
+                      // sudah ada pilihan -> tampilkan HANYA pilihan (rekomendasi disembunyikan)
+                      return ListView(
+                        controller: _listCtrl,
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
                         children: [
-                          const _SectionTitle('Hasil Pencarian'),
+                          _SectionTitle('Item $selectedCategory Kamu'),
                           const SizedBox(height: 12),
-                          _emptyState(
-                            icon: Icons.search_off_rounded,
-                            title: 'Tidak ada hasil',
-                            subtitle:
-                                'Coba kata kunci lain atau periksa ejaannya.',
+                          ...selected.map(
+                            (e) =>
+                                _selectedItem(e, onTap: () => _removeItem(e)),
                           ),
                         ],
                       );
                     }
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
-                      itemCount: results.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return const Padding(
-                            padding: EdgeInsets.only(bottom: 12),
-                            child: _SectionTitle('Hasil Pencarian'),
-                          );
-                        }
-                        final item = results[index - 1];
-                        return _resultItem(item, onTap: () => _addItem(item));
-                      },
-                    );
-                  }
 
-                  // Bukan search
-                  final recommended = allItems
-                      .where((e) => !selected.contains(e))
-                      .take(8)
-                      .toList();
+                    if (state is MakananListLoaded) {
+                      // jika BELUM ada item dipilih → tampilkan rekomendasi
+                      if (selected.isEmpty) {
+                        final recommended =
+                            _excludeSelected(state.items).take(8).toList();
+                        return ListView(
+                          controller: _listCtrl,
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
+                          children: [
+                            _startCard(),
+                            const SizedBox(height: 20),
+                            const _SectionTitle('Rekomendasi'),
+                            const SizedBox(height: 12),
+                            ...recommended.map(
+                              (e) => _resultItem(e, onTap: () => _addItem(e)),
+                            ),
+                          ],
+                        );
+                      }
 
-                  if (selected.isEmpty) {
-                    // Mulai + Rekomendasi
-                    return ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
-                      children: [
-                        _startCard(),
-                        const SizedBox(height: 20),
-                        const _SectionTitle('Rekomendasi'),
-                        const SizedBox(height: 12),
-                        ...recommended.map(
-                          (e) => _resultItem(e, onTap: () => _addItem(e)),
-                        ),
-                      ],
-                    );
-                  }
+                      // SUDAH ada item dipilih → HANYA tampilkan daftar pilihan (tanpa rekomendasi)
+                      return ListView(
+                        controller: _listCtrl,
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
+                        children: [
+                          _SectionTitle('Item $selectedCategory Kamu'),
+                          const SizedBox(height: 12),
+                          ...selected.map(
+                            (e) =>
+                                _selectedItem(e, onTap: () => _removeItem(e)),
+                          ),
+                        ],
+                      );
+                    }
 
-                  // Sudah ada pilihan -> daftar pilihan + (opsional) rekomendasi
-                  return ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
-                    children: [
-                      _SectionTitle('Item $selectedCategory Kamu'),
-                      const SizedBox(height: 12),
-                      ...selected.map(
-                        (e) => _selectedItem(e, onTap: () => _removeItem(e)),
-                      ),
-                      if (recommended.isNotEmpty) ...[
-                        const SizedBox(height: 20),
-                        const _SectionTitle('Rekomendasi'),
-                        const SizedBox(height: 12),
-                        ...recommended.map(
-                          (e) => _resultItem(e, onTap: () => _addItem(e)),
-                        ),
-                      ],
-                    ],
-                  );
-                },
+                    if (state is MakananEmpty) {
+                      // tidak ada data awal dari backend
+                      if (selected.isNotEmpty) {
+                        // sudah ada pilihan → tampilkan HANYA pilihan
+                        return ListView(
+                          controller: _listCtrl,
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
+                          children: [
+                            _SectionTitle('Item $selectedCategory Kamu'),
+                            const SizedBox(height: 12),
+                            ...selected.map(
+                              (e) =>
+                                  _selectedItem(e, onTap: () => _removeItem(e)),
+                            ),
+                          ],
+                        );
+                      }
+                      // belum ada pilihan → tampilkan kosong + info
+                      return ListView(
+                        controller: _listCtrl,
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
+                        children: const [
+                          _SectionTitle('Rekomendasi'),
+                          SizedBox(height: 12),
+                          _EmptyBox(),
+                        ],
+                      );
+                    }
+
+                    if (state is MakananError) {
+                      if (selected.isNotEmpty) {
+                        // sudah ada pilihan → tetap hanya tampilkan pilihan
+                        return ListView(
+                          controller: _listCtrl,
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
+                          children: [
+                            _SectionTitle('Item $selectedCategory Kamu'),
+                            const SizedBox(height: 12),
+                            ...selected.map(
+                              (e) =>
+                                  _selectedItem(e, onTap: () => _removeItem(e)),
+                            ),
+                          ],
+                        );
+                      }
+                      // belum ada pilihan → tampilkan error di area rekomendasi
+                      return ListView(
+                        controller: _listCtrl,
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 140),
+                        children: [
+                          const _SectionTitle('Rekomendasi'),
+                          const SizedBox(height: 12),
+                          _emptyState(
+                            icon: Icons.error_outline_rounded,
+                            title: 'Gagal memuat',
+                            subtitle: state.message,
+                          ),
+                        ],
+                      );
+                    }
+
+                    // fallback
+                    return const SizedBox.shrink();
+                  },
+                ),
               ),
             ),
           ),
@@ -357,7 +519,7 @@ class _SearchState extends State<Search> {
                               context,
                               title: 'Makanan Disimpan!',
                               message:
-                                  'Makanan berhasil disimpan ke dalam daftar (dummy).',
+                                  'Makanan berhasil disimpan ke dalam daftar.',
                               type: DialogType.success,
                               autoDismiss: true,
                               dismissDuration: const Duration(seconds: 2),
@@ -376,7 +538,7 @@ class _SearchState extends State<Search> {
 
   // ================= UI HELPERS =================
 
-  Widget _startCard() {
+  static Widget _startCard() {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -466,7 +628,7 @@ class _SearchState extends State<Search> {
     );
   }
 
-  Widget _emptyState({
+  static Widget _emptyState({
     required IconData icon,
     required String title,
     required String subtitle,
@@ -543,8 +705,8 @@ class _SearchState extends State<Search> {
     );
   }
 
-  // Kartu hasil pencarian (tap di mana saja = tambah)
-  Widget _resultItem(String itemName, {required VoidCallback onTap}) {
+  // Kartu hasil pencarian / rekomendasi (tap di mana saja = tambah)
+  Widget _resultItem(MakananItem item, {required VoidCallback onTap}) {
     return Card(
       color: AppColors.screen,
       margin: const EdgeInsets.only(bottom: 12),
@@ -579,7 +741,7 @@ class _SearchState extends State<Search> {
                       children: [
                         Expanded(
                           child: Text(
-                            itemName,
+                            item.nama,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -590,7 +752,7 @@ class _SearchState extends State<Search> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        _kcalPill('0 Kkal'),
+                        _kcalPill('${item.energiKal.toStringAsFixed(0)} Kkal'),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -617,7 +779,7 @@ class _SearchState extends State<Search> {
   }
 
   // Kartu item terpilih (tap di mana saja = hapus)
-  Widget _selectedItem(String itemName, {required VoidCallback onTap}) {
+  Widget _selectedItem(MakananItem item, {required VoidCallback onTap}) {
     return Card(
       color: AppColors.screen,
       margin: const EdgeInsets.only(bottom: 12),
@@ -652,7 +814,7 @@ class _SearchState extends State<Search> {
                       children: [
                         Expanded(
                           child: Text(
-                            itemName,
+                            item.nama,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -663,7 +825,7 @@ class _SearchState extends State<Search> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        _kcalPill('0 Kkal'),
+                        _kcalPill('${item.energiKal.toStringAsFixed(0)} Kkal'),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -704,6 +866,19 @@ class _SectionTitle extends StatelessWidget {
         fontWeight: FontWeight.w800,
         color: AppColors.darkGrey,
       ),
+    );
+  }
+}
+
+class _EmptyBox extends StatelessWidget {
+  const _EmptyBox();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SearchState._emptyState(
+      icon: Icons.inbox_outlined,
+      title: 'Belum ada data',
+      subtitle: 'Coba tarik untuk memuat ulang.',
     );
   }
 }
